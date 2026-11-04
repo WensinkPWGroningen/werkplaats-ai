@@ -1,8 +1,12 @@
 import streamlit as st
-import requests
+from google import genai
+from google.genai import types
 
 # Jouw unieke Google AI-sleutel
 GOOGLE_API_KEY = "AQ.Ab8RN6JUgEScnQVhSO8DCb6pAwQ1qWZaj3pbvQYef7l3NJw7TA"
+
+# Start de officiële Google client
+client = genai.Client(api_key=GOOGLE_API_KEY)
 
 # Pagina-instellingen voor de tablet
 st.set_page_config(page_title="Werkplaats AI Diagnose Assistent", page_icon="🚗", layout="centered")
@@ -46,36 +50,20 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # DE CORRECTE URL VOOR AQ-SLEUTELS:
-            url = "https://googleapis.com"
-            
-            # De sleutel wordt hier direct in de 'envelop' geplaatst die Google eist
-            headers = {
-                "Content-Type": "application/json",
-                "x-goog-api-key": GOOGLE_API_KEY
-            }
-            
-            # De JSON-structuur voor Google Gemini
-            payload = {
-                "contents": [{
-                    "parts": [{"text": user_prompt}]
-                }],
-                "systemInstruction": {
-                    "parts": [{"text": system_prompt}]
-                }
-            }
-            
             try:
-                response = requests.post(url, headers=headers, json=payload)
+                # We roepen het model aan via de officiële SDK die de AQ-sleutels perfect begrijpt
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=user_prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.3
+                    )
+                )
                 
-                if response.status_code != 200:
-                    st.error(f"Google Server Fout (Status {response.status_code}):")
-                    st.code(response.text)
-                else:
-                    result_json = response.json()
-                    ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
-                    st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
-                    st.markdown(ai_text)
+                # Toon het resultaat op het scherm
+                st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
+                st.markdown(response.text)
                 
             except Exception as e:
-                st.error(f"Er is een fout opgetreden bij het uitlezen van de AI: {e}")
+                st.error(f"Er is een fout opgetreden bij het aanroepen van de AI: {e}")
