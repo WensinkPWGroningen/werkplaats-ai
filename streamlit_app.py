@@ -46,16 +46,13 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # DE GEFIKSTE URL: Nu met een strakke scheiding tussen de website en de API-sleutel (?key=)
+            # DE CORRECTE URL VOOR AQ-SLEUTELS:
             url = "https://googleapis.com"
             
+            # De sleutel wordt hier direct in de 'envelop' geplaatst die Google eist
             headers = {
-                "Content-Type": "application/json"
-            }
-            
-            # We sturen de sleutel mee als een 'parameter' in plaats van hem in de basistekst te plakken
-            params = {
-                "key": GOOGLE_API_KEY
+                "Content-Type": "application/json",
+                "x-goog-api-key": GOOGLE_API_KEY
             }
             
             # De JSON-structuur voor Google Gemini
@@ -69,8 +66,7 @@ if submit_button:
             }
             
             try:
-                # We voegen 'params=params' toe om de sleutel veilig en correct te versturen naar de juiste poort
-                response = requests.post(url, headers=headers, json=payload, params=params)
+                response = requests.post(url, headers=headers, json=payload)
                 
                 if response.status_code != 200:
                     st.error(f"Google Server Fout (Status {response.status_code}):")
