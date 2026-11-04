@@ -3,7 +3,7 @@ import google.generativeai as genai
 
 # ===== HIER JOUW GOOGLE API SLEUTEL PLAKKEN =====
 # Vervang de tekst hieronder door de code die je net hebt gekopieerd!
-GOOGLE_API_KEY = "HIER_JOUW_GOOGLE_API_SLEUTEL_PLAKKEN"
+GOOGLE_API_KEY = "AQ.Ab8RN6JUgEScnQVhSO8DCb6pAwQ1qWZaj3pbvQYef7l3NJw7TA"
 # ===============================================
 
 # Activeer de Google AI
