@@ -1,13 +1,11 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 
-# ===== HIER JOUW GOOGLE API SLEUTEL PLAKKEN =====
-# Vervang de tekst hieronder door de code die je net hebt gekopieerd!
+# Jouw unieke en geldige Google AI-sleutel
 GOOGLE_API_KEY = "AQ.Ab8RN6JUgEScnQVhSO8DCb6pAwQ1qWZaj3pbvQYef7l3NJw7TA"
-# ===============================================
 
-# Activeer de Google AI
-genai.configure(api_key=GOOGLE_API_KEY)
+# Start de allernieuwste Google client die het AQ. formaat begrijpt
+client = genai.Client(api_key=GOOGLE_API_KEY)
 
 # Pagina-instellingen voor de tablet
 st.set_page_config(page_title="Werkplaats AI Diagnose Assistent", page_icon="🚗", layout="centered")
@@ -52,9 +50,12 @@ if submit_button:
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
             try:
-                # We gebruiken het snelle en gratis 'gemini-2.5-flash' model
-                model_ai = genai.GenerativeModel('gemini-2.5-flash', system_instruction=system_prompt)
-                response = model_ai.generate_content(user_prompt)
+                # We roepen het model aan via de allernieuwste code-standaard van Google
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=user_prompt,
+                    config={'system_instruction': system_prompt}
+                )
                 
                 # Toon het resultaat op het scherm
                 st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
