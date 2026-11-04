@@ -32,7 +32,7 @@ if submit_button:
     else:
         with st.spinner("Google AI analyseert de klacht en formuleert teststappen..."):
             
-            # De strikte instructies voor de AI om de teststappen te dwingen
+            # De strikte instructies voor de AI
             system_prompt = (
                 "Jij bent een master-technicus en diagnose-expert bij een officiële merkdealer. "
                 "Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch, professioneel diagnose-advies. "
@@ -46,31 +46,40 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # We sturen het verzoek direct via een beveiligde weblink (REST API) ipv de haperende bibliotheek
-            url = f"https://googleapis.com"
+            # We gebruiken de stabiele v1beta endpoint met het gpt-equivalente gemini-2.5-flash model
+            url = f"https://googleapis.com{GOOGLE_API_KEY}"
             
-            # DIT IS DE FIX: We dwingen de 'x-goog-api-key' header af om de 401 bug te omzeilen
             headers = {
-                "x-goog-api-key": GOOGLE_API_KEY,
                 "Content-Type": "application/json"
             }
             
+            # Dit is de exacte, door Google vereiste JSON-structuur voor tekstgeneratie
             payload = {
-                "contents": [{"parts": [{"text": user_prompt}]}],
-                "systemInstruction": {"parts": [{"text": system_prompt}]}
+                "contents": [{
+                    "parts": [{"text": user_prompt}]
+                }],
+                "systemInstruction": {
+                    "parts": [{"text": system_prompt}]
+                }
             }
             
             try:
                 response = requests.post(url, headers=headers, json=payload)
-                result_json = response.json()
                 
-                if response.status_code == 200:
-                    # Haal de tekst netjes uit het antwoord van Google
+                # Vangnet: als Google geen 200 (OK) teruggeeft, toon dan de ruwe tekst van de fout
+                if response.status_code != 200:
+                    st.error(f"Google Server Fout (Status {response.status_code}):")
+                    st.code(response.text)
+                else:
+                    result_json = response.json()
+                    # Haal de tekst diep uit de Google JSON-structuur
                     ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
                     st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
                     st.markdown(ai_text)
-                else:
-                    st.error(f"Foutcode {response.status_code}: {result_json.get('error', {}).get('message', 'Onbekende fout')}")
                 
             except Exception as e:
-                st.error(f"Er is een fout opgetreden bij het verwerken van het AI-antwoord: {e}")
+                st.error(f"Er is een fout opgetreden bij het uitlezen van de AI: {e}")
+                # Toon de ruwe respons om te zien wat er écht binnenkomt
+                if 'response' in locals():
+                    st.text("Ruwe server respons:")
+                    st.code(response.text)
