@@ -1,11 +1,8 @@
 import streamlit as st
-from google import genai
+import requests
 
-# Jouw unieke en geldige Google AI-sleutel
+# Jouw unieke Google AI-sleutel
 GOOGLE_API_KEY = "AQ.Ab8RN6JUgEScnQVhSO8DCb6pAwQ1qWZaj3pbvQYef7l3NJw7TA"
-
-# Start de allernieuwste Google client die het AQ. formaat begrijpt
-client = genai.Client(api_key=GOOGLE_API_KEY)
 
 # Pagina-instellingen voor de tablet
 st.set_page_config(page_title="Werkplaats AI Diagnose Assistent", page_icon="🚗", layout="centered")
@@ -49,17 +46,31 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
+            # We sturen het verzoek direct via een beveiligde weblink (REST API) ipv de haperende bibliotheek
+            url = f"https://googleapis.com"
+            
+            # DIT IS DE FIX: We dwingen de 'x-goog-api-key' header af om de 401 bug te omzeilen
+            headers = {
+                "x-goog-api-key": GOOGLE_API_KEY,
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "contents": [{"parts": [{"text": user_prompt}]}],
+                "systemInstruction": {"parts": [{"text": system_prompt}]}
+            }
+            
             try:
-                # We roepen het model aan via de allernieuwste code-standaard van Google
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=user_prompt,
-                    config={'system_instruction': system_prompt}
-                )
+                response = requests.post(url, headers=headers, json=payload)
+                result_json = response.json()
                 
-                # Toon het resultaat op het scherm
-                st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
-                st.markdown(response.text)
+                if response.status_code == 200:
+                    # Haal de tekst netjes uit het antwoord van Google
+                    ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
+                    st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
+                    st.markdown(ai_text)
+                else:
+                    st.error(f"Foutcode {response.status_code}: {result_json.get('error', {}).get('message', 'Onbekende fout')}")
                 
             except Exception as e:
-                st.error(f"Er is een fout opgetreden bij het aanroepen van de AI: {e}")
+                st.error(f"Er is een fout opgetreden bij het verwerken van het AI-antwoord: {e}")
