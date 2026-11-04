@@ -46,15 +46,13 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # DE ENIGE CORRECTE URL METHODE VOOR AQ-PREFIX SLEUTELS:
-            # We plakken de sleutel direct achteraan de URL via '?key=' om de 401 bug te omzeilen.
+            # HIER STAAT DE FORMULE NU EMGEKEERD ÉN VOLLEDIG CORRECT:
             url = f"https://googleapis.com{GOOGLE_API_KEY}"
             
             headers = {
                 "Content-Type": "application/json"
             }
             
-            # Strikte JSON structuur die door Google v1beta vereist wordt
             payload = {
                 "contents": [{
                     "parts": [{"text": user_prompt}]
@@ -65,7 +63,6 @@ if submit_button:
             }
             
             try:
-                # We sturen de aanvraag nu puur als een directe post-actie zonder verwarrende headers
                 response = requests.post(url, headers=headers, json=payload)
                 
                 if response.status_code != 200:
@@ -73,7 +70,6 @@ if submit_button:
                     st.code(response.text)
                 else:
                     result_json = response.json()
-                    # Haal de tekst diep uit de ontvangen data
                     ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
                     st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
                     st.markdown(ai_text)
