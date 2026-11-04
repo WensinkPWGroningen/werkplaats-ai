@@ -46,7 +46,7 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # HIER STAAT DE FORMULE NU EMGEKEERD ÉN VOLLEDIG CORRECT:
+            # DE GECORRIGEERDE LINK: Volledig uitgeschreven zonder verborgen plakkers
             url = f"https://googleapis.com{GOOGLE_API_KEY}"
             
             headers = {
@@ -70,7 +70,7 @@ if submit_button:
                     st.code(response.text)
                 else:
                     result_json = response.json()
-                    ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
+                    ai_text = result_json['candidates']['content']['parts']['text']
                     st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
                     st.markdown(ai_text)
                 
