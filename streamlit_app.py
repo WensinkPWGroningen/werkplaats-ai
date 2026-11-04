@@ -46,14 +46,19 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # We gebruiken de stabiele v1beta endpoint met het gpt-equivalente gemini-2.5-flash model
-            url = f"https://googleapis.com{GOOGLE_API_KEY}"
+            # DE GEFIKSTE URL: Nu met een strakke scheiding tussen de website en de API-sleutel (?key=)
+            url = "https://googleapis.com"
             
             headers = {
                 "Content-Type": "application/json"
             }
             
-            # Dit is de exacte, door Google vereiste JSON-structuur voor tekstgeneratie
+            # We sturen de sleutel mee als een 'parameter' in plaats van hem in de basistekst te plakken
+            params = {
+                "key": GOOGLE_API_KEY
+            }
+            
+            # De JSON-structuur voor Google Gemini
             payload = {
                 "contents": [{
                     "parts": [{"text": user_prompt}]
@@ -64,22 +69,17 @@ if submit_button:
             }
             
             try:
-                response = requests.post(url, headers=headers, json=payload)
+                # We voegen 'params=params' toe om de sleutel veilig en correct te versturen naar de juiste poort
+                response = requests.post(url, headers=headers, json=payload, params=params)
                 
-                # Vangnet: als Google geen 200 (OK) teruggeeft, toon dan de ruwe tekst van de fout
                 if response.status_code != 200:
                     st.error(f"Google Server Fout (Status {response.status_code}):")
                     st.code(response.text)
                 else:
                     result_json = response.json()
-                    # Haal de tekst diep uit de Google JSON-structuur
                     ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
                     st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
                     st.markdown(ai_text)
                 
             except Exception as e:
                 st.error(f"Er is een fout opgetreden bij het uitlezen van de AI: {e}")
-                # Toon de ruwe respons om te zien wat er écht binnenkomt
-                if 'response' in locals():
-                    st.text("Ruwe server respons:")
-                    st.code(response.text)
