@@ -189,12 +189,12 @@ if submit_button:
             for attempt in range(max_retries):
                 try:
                     response = requests.post(url, headers=headers, json=payload)
-                    
                     if response.status_code == 200:
                         result_json = response.json()
-                        ai_text = result_json["candidates"][0]["content"]["parts"][0]["text"]
+                        ai_text = result_json["candidates"]["content"]["parts"]["text"]
                         st.success("Mercedes-Benz Diagnose Advies & Teststappen:")
                         st.markdown(ai_text)
                         ai_antwoord_succesvol = True
                         break
                     else:
+                        st.warning(f"Google AI reageert vertraagd. Nieuwe poging {attempt + 1}/{max_retries}...")
