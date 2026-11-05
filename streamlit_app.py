@@ -18,7 +18,7 @@ st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, l
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
-        # Socrata API-aanroep voor de actuele basis voertuiggegevens van de RDW
+        # Socrata API-aanroep voor de basis voertuiggegevens van de RDW
         v_url = "https://rdw.nl" + str(k)
         v_resp = requests.get(v_url, timeout=5)
         v_json = v_resp.json()
@@ -26,10 +26,16 @@ def haal_rdw_data(kenteken):
         if not v_json or not isinstance(v_json, list) or len(v_json) == 0:
             return None
             
-        # Haal veilig het eerste Socrata JSON-object uit de lijst zonder haken te gebruiken
-        v = v_json.pop(0)
+        # Haal het eerste voertuig-object veilig uit de Socrata-lijst met een lus
+        v = None
+        for item in v_json:
+            v = item
+            break
+            
+        if not v:
+            return None
         
-        # Socrata API-aanroep voor de bijbehorende brandstof- en hybridegegevens van de RDW
+        # Socrata API-aanroep voor de bijbehorende brandstofgegevens van de RDW
         b_url = "https://rdw.nl" + str(k)
         b_resp = requests.get(b_url, timeout=5)
         b_json = b_resp.json()
@@ -54,9 +60,10 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Haal veilig het eerste brandstofobject uit de Socrata-lijst
-                first_b = b_json.pop(0)
-                brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
+                # Haal de brandstofomschrijving veilig uit de Socrata-lijst via een lus
+                for first_b in b_json:
+                    brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
+                    break
 
         # Controleer direct of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
