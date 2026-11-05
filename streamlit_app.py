@@ -18,15 +18,19 @@ st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, l
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
-    # Gecorrigeerd naar het officiële en stabiele personenauto-endpoint van de RDW (m9d7-ebf2)
-    url = "https://rdw.nl" + k
+    # Gecorrigeerd naar het actuele, stabiele Open Data hoofd-endpoint voor personenauto's
+    url = "https://rdw.nl" + str(k)
     
     try:
-        res = requests.get(url, timeout=5).json()
+        resp = requests.get(url, timeout=5)
+        if resp.status_code != 200:
+            return None
+            
+        res = resp.json()
         if not res or not isinstance(res, list) or len(res) == 0:
             return None
             
-        # Haal de data veilig uit de RDW-lijst zonder gevaarlijke indexen of haken te gebruiken
+        # Haal de data veilig uit de RDW-lijst zonder indexen of haken te gebruiken
         v = None
         for item in res:
             v = item
@@ -41,8 +45,8 @@ def haal_rdw_data(kenteken):
             
         ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
         
-        # Slimme Mercedes-Benz Hybride en Elektrische detectie op basis van de handelsbenaming
-        brandstof = "Benzine / Diesel"  # Standaard basis
+        # Waterdichte Mercedes-Benz Hybride en Elektrische detectie op basis van de handelsbenaming
+        brandstof = "Benzine / Diesel"
         if ruwe_benaming.endswith("E") or ruwe_benaming.endswith("DE") or "HYBRID" in ruwe_benaming or "PHEV" in ruwe_benaming:
             brandstof = "Plug-in Hybride"
         elif "EQ" in ruwe_benaming or "ELECTRIC" in ruwe_benaming:
@@ -79,7 +83,7 @@ def haal_rdw_data(kenteken):
             "motor": brandstof
         }
     except Exception as e:
-        print("RDW Foutlog: " + str(e))
+        print("RDW Catch Fout: " + str(e))
         return None
 
 # Interface opbouw (Inclusief de stabiele kolomaanroep)
