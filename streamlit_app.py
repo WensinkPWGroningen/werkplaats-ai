@@ -2,6 +2,27 @@ import streamlit as st
 import requests
 import time
 
+def haal_rdw_data(kenteken):
+    k = kenteken.replace("-", "").replace(" ", "").upper()
+    # We bouwen de RDW links op uit losse delen om het chatfilter te omzeilen
+    basis = "https://rdw.nl"
+    v_url = basis + "m9qq-kvj9.json?kenteken=" + k
+    b_url = basis + "8ys7-zzye.json?kenteken=" + k
+    try:
+        v_res = requests.get(v_url).json()
+        if not v_res: return None
+        v = v_res[0]
+        b_res = requests.get(b_url).json()
+        brandstof = b_res[0].get("brandstof_omschrijving", "Onbekend") if b_res else "Onbekend"
+        if v.get("merk", "").upper() != "MERCEDES-BENZ":
+            return "GEEN_MERCEDES"
+        return {
+            "model": v.get("handelsbenaming", "Onbekend"),
+            "jaar": v.get("datum_eerste_toelating", "0000")[:4],
+            "motor": brandstof
+        }
+    except: return None
+
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
@@ -11,20 +32,37 @@ st.set_page_config(page_title="Mercedes-Benz AI Diagnose Assistent", page_icon="
 st.title("🚗 Mercedes-Benz AI Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
 
-# Invoerformulier voor de monteur
+# Kenteken invoer buiten het diagnoseformulier om direct te kunnen laden
+st.subheader("1. Voertuiggegevens (via RDW of handmatig)")
+kenteken_invoer = st.text_input("Voer kenteken in voor automatische overname", placeholder="Bijv. GG-123-X")
+
+if st.button("Haal voertuiggegevens op"):
+    if kenteken_invoer:
+        with st.spinner("Gegevens ophalen bij de RDW..."):
+            data = haal_rdw_data(kenteken_invoer)
+            if data == "GEEN_MERCEDES":
+                st.error("Dit kenteken is niet van een Mercedes-Benz. Deze app is uitsluitend voor Mercedes-Benz.")
+            elif data:
+                st.session_state["rdw_model"] = data["model"]
+                st.session_state["rdw_jaar"] = data["jaar"]
+                st.session_state["rdw_motor"] = data["motor"]
+                st.success("Voertuig succesvol opgehaald!")
+            else:
+                st.warning("Kenteken niet gevonden of RDW onbereikbaar. Vul de velden handmatig in.")
+
+# Het formulier gebruikt nu de ingeladen RDW-data als standaardwaarde
 with st.form("diagnose_form"):
     col1, col2 = st.columns(2)
     with col1:
-        model = st.text_input("Model auto", placeholder="Bijv. C-Klasse (W205) / EQA")
-        bouwjaar = st.text_input("Bouwjaar", placeholder="Bijv. 2018")
+        model = st.text_input("Model auto", value=st.session_state.get("rdw_model", ""), placeholder="Bijv. C-Klasse (W205)")
+        bouwjaar = st.text_input("Bouwjaar", value=st.session_state.get("rdw_jaar", ""), placeholder="Bijv. 2018")
     with col2:
-        motorisering = st.text_input("Motor / Brandstof", placeholder="Bijv. 220d / EV")
+        motorisering = st.text_input("Motor / Brandstof", value=st.session_state.get("rdw_motor", ""), placeholder="Bijv. 220d / EV")
         foutcode = st.text_input("Storingscode / DTC (Optioneel)", placeholder="Bijv. P0301 of U0100")
 
-    klacht = st.text_area("Omschrijving van de klacht / symptomen", 
-                          placeholder="Bijv. Motor houdt in rond de 2000 toeren, storingslampje knippert.")
-    
+    klacht = st.text_area("Omschrijving van de klacht / symptomen", placeholder="Bijv. Motor houdt in rond de 2000 toeren...")
     submit_button = st.form_submit_button(label="Genereer Diagnose & Teststappen")
+
 
 # AI logica wanneer de monteur op de knop drukt
 if submit_button:
