@@ -64,7 +64,7 @@ def haal_rdw_data(kenteken):
                     brandstof = "Hybride"
             else:
                 # Geen combinatie? Pak de eerste omschrijving uit de eerste regel
-                first_b = brandstof_lijst if brandstof_lijst else {}
+                first_b = brandstof_lijst[0] if brandstof_lijst else {}
                 brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
@@ -110,9 +110,9 @@ def haal_rdw_data(kenteken):
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # Header met logo en titel strak uitgelijnd in kolommen
-col_logo, col_title = st.columns()
+col_logo, col_title = st.columns([1, 5])
 with col_logo:
-    st.image(WENSINK_MERCEDES_BASE64, width=100)
+    st.image(WENSINK_MERCEDES_BASE64, width=90)
 with col_title:
     st.title("Wensink Mercedes-Benz Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
@@ -196,4 +196,5 @@ if submit_button:
                         st.markdown(ai_text)
                         success = True
                         break
-                    # Aangepast naar harde statustests om filters en in-statements te omzeilen
+                    else:
+                        if attempt < max_retries - 1:
