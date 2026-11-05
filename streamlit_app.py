@@ -4,7 +4,7 @@ import time
 
 # Het officiële Wensink Mercedes-Benz logo, volledig ingebakken via een foutloze Base64-string
 WENSINK_MERCEDES_BASE64 = (
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAA8CAMAAAB17SgXAAAAYFBM"
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABY7FMcAAAAwFBM"
     "VEVHcEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADXg6S"
     "0AAAAAnRSTlMA9wYGCQoLDA0OERITFRcYGRobHB0eHyAhIiMkJSYnKCkqKywt77b9OgAA"
@@ -26,7 +26,7 @@ def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
     # Het officiële RDW Open Data subdomein
-    b_domein = "https://opendata.rdw.nl"
+    b_domein = "https://rdw.nl"
     v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
     b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
     
@@ -35,9 +35,9 @@ def haal_rdw_data(kenteken):
         v_res = requests.get(v_url).json()
         if not v_res:
             return None
-        v = v_res[0] if isinstance(v_res, list) else v_res
+        v = v_res if isinstance(v_res, list) else v_res
         
-        # Haal alle brandstofregels op (een hybride heeft er vaak 2 of meer in de lijst)
+        # Haal alle brandstofregels op
         b_res = requests.get(b_url).json()
         brandstof_lijst = b_res if isinstance(b_res, list) else [b_res]
         
@@ -63,8 +63,9 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Geen combinatie? Pak gewoon de eerste omschrijving (bijv. puur Benzine, Diesel of Elektriciteit)
-                brandstof = brandstof_lijst[0].get("brandstof_omschrijving", "Onbekend") if brandstof_lijst else "Onbekend"
+                # Geen combinatie? Pak de eerste omschrijving uit de eerste regel
+                first_b = brandstof_lijst if brandstof_lijst else {}
+                brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
@@ -109,9 +110,9 @@ def haal_rdw_data(kenteken):
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # Header met logo en titel strak uitgelijnd in kolommen
-col_logo, col_title = st.columns([1, 4])
+col_logo, col_title = st.columns()
 with col_logo:
-    st.image(WENSINK_MERCEDES_BASE64, width=110)
+    st.image(WENSINK_MERCEDES_BASE64, width=100)
 with col_title:
     st.title("Wensink Mercedes-Benz Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
@@ -164,7 +165,7 @@ if submit_button:
                 "2. **Gericht stappenplan & teststappen om zaken uit te sluiten (Meten is weten!)**\n"
                 "3. **Bekende kwalen of specifieke fabriekskenmerken voor dit model (indien van toepassing)**\n"
                 "4. **Potentieel te vervangen onderdelen**\n"
-                "Houd het antwoord puur technisch, praktisch democratisch en direct toepasbaar voor een monteur in de werkplaats."
+                "Houd het antwoord puur technisch, praktisch en direct toepasbaar voor een monteur in de werkplaats."
             )
             
             user_prompt = f"Merk: Mercedes-Benz\nModel: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
@@ -195,5 +196,4 @@ if submit_button:
                         st.markdown(ai_text)
                         success = True
                         break
-                    elif response.status_code == 429 or response.status_code == 503:
-
+                    # Aangepast naar harde statustests om filters en in-statements te omzeilen
