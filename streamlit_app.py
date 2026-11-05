@@ -73,7 +73,7 @@ if submit_button:
                 else:
                     result_json = response.json()
                     # Gecorrigeerde indexering met [0]
-                    ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
+                    ai_text = result_json['candidates'][0]['content']['parts']['text']
                     st.success("Diagnose Advies & Teststappen:")
                     st.markdown(ai_text)
                 
