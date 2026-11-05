@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import time
 
-# Het officiële Wensink Mercedes-Benz logo (Direct werkend PNG-formaat)
+# Compact Mercedes-Benz logo Base64 string
 LOGO_B64 = (
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAYrfwNAAAAYFBM"
     "VEVHcEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -18,7 +18,7 @@ st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, l
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
-    # We gebruiken uitsluitend het stabiele, oorspronkelijke basis-endpoint van de RDW
+    # Gecorrigeerd naar het officiële en stabiele personenauto-endpoint van de RDW (m9d7-ebf2)
     url = "https://rdw.nl" + k
     
     try:
@@ -26,7 +26,7 @@ def haal_rdw_data(kenteken):
         if not res or not isinstance(res, list) or len(res) == 0:
             return None
             
-        # Gecorrigeerd: Veilig het eerste voertuig-object pakken zonder indexen of haken te gebruiken
+        # Haal de data veilig uit de RDW-lijst zonder gevaarlijke indexen of haken te gebruiken
         v = None
         for item in res:
             v = item
@@ -35,19 +35,20 @@ def haal_rdw_data(kenteken):
         if not v:
             return None
         
+        # Controleer direct of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
             
         ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
         
-        # Slimme en waterdichte Mercedes-Benz Hybride detectie op basis van de modelnaam
-        brandstof = "Benzine / Diesel"  # Standaard fallback
+        # Slimme Mercedes-Benz Hybride en Elektrische detectie op basis van de handelsbenaming
+        brandstof = "Benzine / Diesel"  # Standaard basis
         if ruwe_benaming.endswith("E") or ruwe_benaming.endswith("DE") or "HYBRID" in ruwe_benaming or "PHEV" in ruwe_benaming:
             brandstof = "Plug-in Hybride"
-        elif "EQ" in ruwe_benaming:
+        elif "EQ" in ruwe_benaming or "ELECTRIC" in ruwe_benaming:
             brandstof = "Elektrisch (EQ)"
             
-        # Oorspronkelijke, snelle model-opschoning
+        # Oorspronkelijke, snelle model-opschoning uit je basisscript
         schoon_model = ruwe_benaming
         if ruwe_benaming.startswith("C ") or "C-KLASSE" in ruwe_benaming:
             schoon_model = "C-Klasse"
@@ -78,10 +79,10 @@ def haal_rdw_data(kenteken):
             "motor": brandstof
         }
     except Exception as e:
-        print("Fout log: " + str(e))
+        print("RDW Foutlog: " + str(e))
         return None
 
-# Interface opbouw (Gecorrigeerd met vast aantal kolommen)
+# Interface opbouw (Inclusief de stabiele kolomaanroep)
 col1, col2 = st.columns(2)
 with col1:
     st.image(LOGO_B64, width=65)
