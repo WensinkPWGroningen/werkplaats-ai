@@ -50,7 +50,7 @@ if submit_button:
             volledig_domein = s + d + "." + g
 
             # Hier plakken we het juiste API-pad aan vast
-            pad = "/v1beta/models/gemini-2.5-flash:generateContent"
+            pad = "/v1beta/models/gemini-3.8-flash:generateContent"
             url = volledig_domein + pad + "?key=" + GOOGLE_API_KEY
 
 
