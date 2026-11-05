@@ -16,9 +16,10 @@ LOGO_B64 = (
 st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, layout="centered")
 
 def haal_rdw_data(kenteken):
+    # Verwijder streepjes en spaties
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
-        # Gecorrigeerde en stabiele officiële RDW Open Data endpoints
+        # Haal de basis voertuiggegevens op via het stabiele RDW basis-endpoint
         v_url = "https://rdw.nl" + str(k)
         v_resp = requests.get(v_url, timeout=5)
         v_json = v_resp.json()
@@ -26,10 +27,16 @@ def haal_rdw_data(kenteken):
         if not v_json or not isinstance(v_json, list) or len(v_json) == 0:
             return None
             
-        # Pak het eerste voertuig-object veilig uit de lijst
-        v = v_json.pop(0)
+        # Pak het eerste voertuig-object veilig uit de lijst door de list-methoden te omzeilen
+        v = None
+        for item in v_json:
+            v = item
+            break
+            
+        if not v:
+            return None
         
-        # Gecorrigeerd brandstof-endpoint
+        # Haal de bijbehorende brandstofgegevens op via het brandstof-endpoint
         b_url = "https://rdw.nl" + str(k)
         b_resp = requests.get(b_url, timeout=5)
         b_json = b_resp.json()
@@ -54,9 +61,10 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Pak het eerste brandstof-object veilig uit de lijst
-                first_b = b_json.pop(0)
-                brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
+                # Pak de brandstofomschrijving van het eerste element uit de lus om indexen te omzeilen
+                for first_b in b_json:
+                    brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
+                    break
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
@@ -94,8 +102,8 @@ def haal_rdw_data(kenteken):
         print("RDW Fout: " + str(e))
         return None
 
-# Interface opbouw (Inclusief een vaste kolomindeling)
-col1, col2 = st.columns([1, 6])
+# Interface opbouw
+col1, col2 = st.columns()
 with col1:
     st.image(LOGO_B64, width=65)
 with col2:
@@ -133,9 +141,8 @@ with st.form("diagnose_form"):
 if submit and model and klacht:
     with st.spinner("Google AI analyseert de klacht..."):
         sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) and de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
-        user_p = "Merk: Mercedes-Benz\nModel: " + str(model) + " (" + str(bouwjaar) + ")\nMotor: " + str(motorisering) + "\nStoringscode: " + str(foutcode if foutcode else "Guon") + "\nKlacht: " + str(klacht)
+        user_p = "Merk: Mercedes-Benz\nModel: " + str(model) + " (" + str(bouwjaar) + ")\nMotor: " + str(motorisering) + "\nStoringscode: " + str(foutcode if foutcode else "Geen") + "\nKlacht: " + str(klacht)
         
-        # Gecorrigeerd en hersteld Google Gemini API endpoint
         url = "https://googleapis.com" + st.secrets["GOOGLE_API_KEY"]
         payload = {"contents": [{"parts": [{"text": user_p}]}], "systemInstruction": {"parts": [{"text": sys_p}]}}
         
