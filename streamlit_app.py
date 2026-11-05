@@ -924,3 +924,252 @@ st.caption(
 # ============================================================
 # EINDE DEEL 3
 # ============================================================
+
+# ============================================================
+# DEEL 4A: INTERACTIEVE GEMINI VERVOLGCHAT
+# ============================================================
+
+def genereer_vervolgantwoord(chat_history, vraag):
+
+    api_key = st.secrets.get("GOOGLE_API_KEY", "")
+
+    if not api_key:
+        raise ValueError("Google API-sleutel ontbreekt.")
+
+    systeem_prompt = """
+Je bent de Mercedes-Benz Master Technician van
+de Wensink Diagnose Assistent.
+
+Je voert een doorlopende technische diagnose uit.
+
+BELANGRIJK:
+
+1. Onthoud alle eerdere voertuiggegevens.
+2. Onthoud de oorspronkelijke klacht.
+3. Onthoud alle eerder besproken storingscodes.
+4. Gebruik de eerdere diagnose als uitgangspunt.
+5. Verwerk nieuwe meetwaarden en testresultaten.
+6. Pas je eerdere conclusies aan als nieuwe informatie
+   daar aanleiding toe geeft.
+7. Stel gerichte vervolgvragen wanneer informatie ontbreekt.
+8. Geef praktische vervolgstappen voor de monteur.
+9. Verzin geen technische specificaties of meetwaarden.
+10. Maak onderscheid tussen vermoedens en bewezen defecten.
+11. Verwijs bij modelspecifieke fabrieksgegevens naar XENTRY
+    of officiële Mercedes-Benz documentatie.
+
+Geef antwoord in professioneel Nederlands.
+
+Je hoeft de volledige eerdere diagnose niet steeds te herhalen.
+Concentreer je op de nieuwe vraag en de volgende diagnosestap.
+"""
+
+    url = (
+        "https://generativelanguage.googleapis.com/"
+        "v1beta/models/gemini-3.8-flash:generateContent"
+    )
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key
+    }
+
+    # Volledige eerdere gespreksgeschiedenis meesturen
+
+    inhoud = chat_history + [
+        {
+            "role": "user",
+            "parts": [
+                {"text": vraag}
+            ]
+        }
+    ]
+
+    payload = {
+        "contents": inhoud,
+        "systemInstruction": {
+            "parts": [
+                {"text": systeem_prompt}
+            ]
+        },
+        "generationConfig": {
+            "temperature": 0.2
+        }
+    }
+
+    for poging in range(1, 4):
+
+        try:
+
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=90
+            )
+
+            if response.status_code in (
+                429, 500, 502, 503, 504
+            ):
+
+                if poging < 3:
+                    time.sleep(2 * poging)
+                    continue
+
+            response.raise_for_status()
+
+            resultaat = response.json()
+
+            kandidaten = resultaat.get(
+                "candidates", []
+            )
+
+            if not kandidaten:
+                raise ValueError(
+                    "Gemini heeft geen antwoord teruggegeven."
+                )
+
+            onderdelen = kandidaten[0].get(
+                "content", {}
+            ).get("parts", [])
+
+            antwoord = "\n".join(
+                onderdeel.get("text", "")
+                for onderdeel in onderdelen
+                if onderdeel.get("text")
+            )
+
+            if not antwoord:
+                raise ValueError(
+                    "Gemini heeft een leeg antwoord teruggegeven."
+                )
+
+            return antwoord
+
+        except requests.exceptions.HTTPError:
+
+            if poging == 3:
+                raise
+
+            time.sleep(2 * poging)
+
+        except requests.exceptions.RequestException:
+
+            if poging == 3:
+                raise
+
+            time.sleep(2 * poging)
+
+    raise RuntimeError(
+        "De vervolgdiagnose kon niet worden gegenereerd."
+    )
+
+
+# ============================================================
+# EINDE DEEL 4A
+# ============================================================
+
+# ============================================================
+# DEEL 4B: INTERACTIEVE DIAGNOSECHAT
+# ============================================================
+
+if st.session_state.get("laatste_diagnose"):
+
+    st.divider()
+
+    st.subheader("4. Verdieping en vervolgvragen")
+
+    st.write(
+        "Stel aanvullende vragen over deze diagnose. "
+        "Gemini onthoudt de eerdere voertuiggegevens, "
+        "klacht en diagnose."
+    )
+
+    # GESPREKSGESCHIEDENIS OPHALEN
+
+    chat_history = st.session_state.get(
+        "chat_history", []
+    )
+
+    # EERDERE BERICHTEN TONEN
+    # De eerste twee berichten zijn de oorspronkelijke
+    # voertuiggegevens en diagnose.
+
+    for bericht in chat_history[2:]:
+
+        if bericht["role"] == "user":
+
+            with st.chat_message("user"):
+
+                st.markdown(
+                    bericht["parts"][0]["text"]
+                )
+
+        elif bericht["role"] == "model":
+
+            with st.chat_message("assistant"):
+
+                st.markdown(
+                    bericht["parts"][0]["text"]
+                )
+
+    # NIEUWE VRAAG INVOEREN
+
+    nieuwe_vraag = st.chat_input(
+        "Stel een vervolgvraag over deze Mercedes...",
+        key="diagnose_chat_input"
+    )
+
+    if nieuwe_vraag:
+
+        with st.chat_message("user"):
+
+            st.markdown(nieuwe_vraag)
+
+        with st.chat_message("assistant"):
+
+            with st.spinner(
+                "Gemini analyseert de vervolggegevens..."
+            ):
+
+                try:
+
+                    antwoord = genereer_vervolgantwoord(
+                        chat_history,
+                        nieuwe_vraag
+                    )
+
+                    # VRAAG OPSLAAN
+
+                    st.session_state["chat_history"].append(
+                        {
+                            "role": "user",
+                            "parts": [
+                                {"text": nieuwe_vraag}
+                            ]
+                        }
+                    )
+
+                    # ANTWOORD OPSLAAN
+
+                    st.session_state["chat_history"].append(
+                        {
+                            "role": "model",
+                            "parts": [
+                                {"text": antwoord}
+                            ]
+                        }
+                    )
+
+                    st.markdown(antwoord)
+
+                except Exception as e:
+
+                    st.error(
+                        "Vervolgdiagnose mislukt: " + str(e)
+                    )
+
+
+# ============================================================
+# EINDE DEEL 4B
+# ============================================================
