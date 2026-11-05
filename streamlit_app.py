@@ -18,7 +18,7 @@ st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, l
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
-        # Aanroep naar de vernieuwde, stabiele hoofd-dataset van de RDW
+        # Socrata API-aanroep voor de actuele basis voertuiggegevens van de RDW
         v_url = "https://rdw.nl" + str(k)
         v_resp = requests.get(v_url, timeout=5)
         v_json = v_resp.json()
@@ -26,16 +26,10 @@ def haal_rdw_data(kenteken):
         if not v_json or not isinstance(v_json, list) or len(v_json) == 0:
             return None
             
-        # Pak veilig het eerste voertuig-object zonder indexen te gebruiken
-        v = None
-        for item in v_json:
-            v = item
-            break
-            
-        if not v:
-            return None
-            
-        # Aanroep naar de vernieuwde brandstof-dataset van de RDW
+        # Haal veilig het eerste Socrata JSON-object uit de lijst zonder haken te gebruiken
+        v = v_json.pop(0)
+        
+        # Socrata API-aanroep voor de bijbehorende brandstof- en hybridegegevens van de RDW
         b_url = "https://rdw.nl" + str(k)
         b_resp = requests.get(b_url, timeout=5)
         b_json = b_resp.json()
@@ -60,12 +54,11 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Pak de omschrijving uit de eerste regel via een lus om indexen te omzeilen
-                for first_b in b_json:
-                    brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
-                    break
+                # Haal veilig het eerste brandstofobject uit de Socrata-lijst
+                first_b = b_json.pop(0)
+                brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
-        # Controleer of het voertuig een Mercedes-Benz is
+        # Controleer direct of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
             
@@ -98,10 +91,10 @@ def haal_rdw_data(kenteken):
             
         return {"model": schoon_model, "jaar": v.get("datum_eerste_toelating", "0000")[:4], "motor": brandstof}
     except Exception as e:
-        print("RDW Fout: " + str(e))
+        print("RDW Socrata Fout: " + str(e))
         return None
 
-# Interface opbouw (Vaste kolomaanroep om TypeErrors te voorkomen)
+# Interface opbouw (Gecorrigeerd met vast aantal kolommen)
 col1, col2 = st.columns(2)
 with col1:
     st.image(LOGO_B64, width=65)
@@ -139,7 +132,7 @@ with st.form("diagnose_form"):
 
 if submit and model and klacht:
     with st.spinner("Google AI analyseert de klacht..."):
-        sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) and de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
+        sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
         user_p = "Merk: Mercedes-Benz\nModel: " + str(model) + " (" + str(bouwjaar) + ")\nMotor: " + str(motorisering) + "\nStoringscode: " + str(foutcode if foutcode else "Geen") + "\nKlacht: " + str(klacht)
         
         url = "https://googleapis.com" + st.secrets["GOOGLE_API_KEY"]
