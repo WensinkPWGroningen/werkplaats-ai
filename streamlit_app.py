@@ -613,7 +613,7 @@ st.divider()
 # SECTIE 1: KENTEKEN OPZOEKEN
 # ============================================================
 
-st.subheader("1. Voertuig identificeren")
+st.subheader("Voertuig identificeren")
 
 col1, col2 = st.columns([3, 1])
 
@@ -765,7 +765,7 @@ if st.session_state.get("rdw_model"):
 
 st.divider()
 
-st.subheader("2. Diagnosegegevens")
+st.subheader("Diagnosegegevens")
 
 with st.form("diagnose_form"):
 
@@ -894,7 +894,7 @@ if st.session_state.get("laatste_diagnose"):
     st.divider()
 
     st.subheader(
-        "3. Mercedes-Benz Diagnoseadvies"
+        "Mercedes-Benz Diagnoseadvies"
     )
 
     st.markdown(
@@ -1077,7 +1077,7 @@ if st.session_state.get("laatste_diagnose"):
 
     st.divider()
 
-    st.subheader("4. Verdieping en vervolgvragen")
+    st.subheader("Verdieping en vervolgvragen")
 
     st.write(
         "Stel aanvullende vragen over deze diagnose. "
@@ -1180,7 +1180,7 @@ if st.session_state.get("laatste_diagnose"):
 
 st.divider()
 
-st.subheader("5. Nieuwe diagnose starten")
+st.subheader("Nieuwe diagnose starten")
 
 st.write(
     "Kies hieronder of je een ander voertuig wilt "
