@@ -65,7 +65,7 @@ def haal_rdw_data(kenteken):
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # Pagina-instellingen voor de tablet in de werkplaats
-st.set_page_config(page_title="Mercedes-Benz AI Diagnose Assistent", page_icon="🚗", layout="centered")
+st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon="🚗", layout="centered")
 
 st.title("🚗 Mercedes-Benz AI Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
