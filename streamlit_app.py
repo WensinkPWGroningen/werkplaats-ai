@@ -62,8 +62,9 @@ def haal_rdw_data(kenteken):
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
-# URL naar een strak, transparant Mercedes-Benz logo voor de app
+# URL naar een strak, transparant Mercedes-Benz logo (PNG-formaat laadt altijd)
 MERCEDES_LOGO_URL = "https://wikimedia.org"
+
 
 # Pagina-instellingen voor de tablet in de werkplaats (MERCEDES_LOGO_URL ingesteld als tab-icoon)
 st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=MERCEDES_LOGO_URL, layout="centered")
