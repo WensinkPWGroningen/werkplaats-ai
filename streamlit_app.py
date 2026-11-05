@@ -1,36 +1,48 @@
 import streamlit as st
 import requests
 import time
+from PIL import Image
+import os
 
-# Gegarandeerd werkende, beveiligde URL naar een officieel Mercedes-Benz logo (PNG-formaat)
-MERCEDES_LOGO_URL = "https://wikimedia.org"
+# Controleer of het lokale bestand bestaat voor het logo, anders gebruiken we een fallback-emoji
+LOCAL_LOGO_PATH = "mercedes_logo.png"
+
+if os.path.exists(LOCAL_LOGO_PATH):
+    logo_afbeelding = Image.open(LOCAL_LOGO_PATH)
+    page_icon_setting = logo_afbeelding
+else:
+    logo_afbeelding = None
+    page_icon_setting = "🚗"
 
 # Pagina-instellingen (Moet ALTIJD eenmalig en als allereerste Streamlit-commando worden aangeroepen!)
-st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=MERCEDES_LOGO_URL, layout="centered")
+st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=page_icon_setting, layout="centered")
 
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
-    # Het officiële RDW Open Data subdomein
-    b_domein = "https://rdw.nl"
+    # Het officiële en correcte RDW Open Data subdomein
+    b_domein = "https://opendata.rdw.nl"
     v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
     b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
     
     try:
+        # Haal basisgegevens op en pak het eerste element [0] uit de JSON-lijst
         v_res = requests.get(v_url).json()
         if not v_res:
             return None
-        v = v_res if isinstance(v_res, list) else v_res
+        v = v_res[0] if isinstance(v_res, list) else v_res
         
+        # Haal brandstofgegevens op en pak het eerste element [0] uit de JSON-lijst
         b_res = requests.get(b_url).json()
-        b_data = b_res if isinstance(b_res, list) else b_res
+        b_data = b_res[0] if isinstance(b_res, list) else b_res
         
         brandstof = b_data.get("brandstof_omschrijving", "Onbekend") if b_data else "Onbekend"
         
+        # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
             
-        # Slimme opschoning voor Mercedes handelsbenamingen
+        # Slimme opschoning voor Mercedes handelsbenamingen naar overzichtelijke klassen
         ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
         schoon_model = ruwe_benaming
         
@@ -68,10 +80,13 @@ def haal_rdw_data(kenteken):
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
-# Header met logo en titel strak uitgelijnd in twee kolommen via st.columns([verhouding])
+# Header met logo en titel strak uitgelijnd in kolommen
 col_logo, col_title = st.columns([1, 6])
 with col_logo:
-    st.image(MERCEDES_LOGO_URL, width=70)
+    if logo_afbeelding:
+        st.image(logo_afbeelding, width=70)
+    else:
+        st.warning("Plaats 'mercedes_logo.png' in de app-map")
 with col_title:
     st.title("Wensink Mercedes-Benz Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
