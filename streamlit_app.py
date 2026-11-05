@@ -2,11 +2,17 @@ import streamlit as st
 import requests
 import time
 
+# URL naar een strak, transparant Mercedes-Benz logo (Direct werkend PNG-formaat)
+MERCEDES_LOGO_URL = "https://wikimedia.org"
+
+# Pagina-instellingen (Moet ALTIJD eenmalig en als allereerste Streamlit-commando worden aangeroepen!)
+st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=MERCEDES_LOGO_URL, layout="centered")
+
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
-    # De correcte Open Data server van de RDW
-    b_domein = "https://rdw.nl"
+    # Gecorrigeerd naar het officiële RDW Open Data subdomein
+    b_domein = "https://opendata.rdw.nl"
     v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
     b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
     
@@ -14,10 +20,10 @@ def haal_rdw_data(kenteken):
         v_res = requests.get(v_url).json()
         if not v_res:
             return None
-        v = v_res if isinstance(v_res, list) else v_res
+        v = v_res[0] if isinstance(v_res, list) else v_res
         
         b_res = requests.get(b_url).json()
-        b_data = b_res if isinstance(b_res, list) else b_res
+        b_data = b_res[0] if isinstance(b_res, list) else b_res
         
         brandstof = b_data.get("brandstof_omschrijving", "Onbekend") if b_data else "Onbekend"
         
@@ -62,20 +68,7 @@ def haal_rdw_data(kenteken):
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
-# URL naar een strak, transparant Mercedes-Benz logo (PNG-formaat laadt altijd)
-MERCEDES_LOGO_URL = "https://wikimedia.org"
-
-
-# Pagina-instellingen voor de tablet in de werkplaats (MERCEDES_LOGO_URL ingesteld als tab-icoon)
-st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=MERCEDES_LOGO_URL, layout="centered")
-
-# Header met het officiële logo gecentreerd/boven de titel
-st.image(MERCEDES_LOGO_URL, width=100)
-st.title
-# Pagina-instellingen voor de tablet in de werkplaats
-st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=MERCEDES_LOGO_URL, layout="centered")
-
-# Header met logo en titel strak uitgelijnd
+# Header met logo en titel strak uitgelijnd in kolommen
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
     st.image(MERCEDES_LOGO_URL, width=70)
@@ -162,12 +155,12 @@ if submit_button:
                         st.markdown(ai_text)
                         success = True
                         break
-                    elif response.status_code in [429, 503]:
+                    elif response.status_code in:
                         if attempt < max_retries - 1:
                             st.warning(f"Google Server heeft het druk (Status {response.status_code}). Nieuwe poging over 3 seconden... (Poging {attempt + 1}/{max_retries})")
                             time.sleep(3)
                         else:
-                            st.error("Google Server is momenteel overbelast. Probeer het over een paar neurominuten nog eens.")
+                            st.error("Google Server is momenteel overbelast. Probeer het over een paar minuten nog eens.")
                     else:
                         st.error(f"Google Server Fout (Status {response.status_code}):")
                         st.code(response.text)
