@@ -1,8 +1,10 @@
 import streamlit as st
 import requests
 
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+
 # Gebruik bij voorkeur st.secrets["GOOGLE_API_KEY"] voor veiligheid
-url = f"https://googleapis.com{GOOGLE_API_KEY}"
+
 
 st.set_page_config(page_title="Werkplaats AI Diagnose Assistent", page_icon="🚗", layout="centered")
 
