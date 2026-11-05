@@ -4,6 +4,65 @@ import requests
 import time
 import re
 
+
+# ============================================================
+# RESETFUNCTIES VOOR NIEUWE DIAGNOSE
+# ============================================================
+
+def reset_nieuw_voertuig():
+
+    # Alle voertuigvelden leegmaken
+    sleutels = [
+        "rdw_model",
+        "rdw_jaar",
+        "rdw_motor",
+        "rdw_handelsbenaming",
+        "rdw_kenteken",
+        "kenteken_invoer",
+
+        # Diagnosevelden
+        "kilometerstand",
+        "foutcode",
+        "klacht",
+        "extra_info",
+
+        # Diagnosegeschiedenis
+        "laatste_diagnose",
+        "chat_history",
+        "diagnose_chat_input",
+    ]
+
+    for sleutel in sleutels:
+        st.session_state[sleutel] = ""
+
+    st.session_state["reset_melding"] = (
+        "Nieuw voertuig: alle gegevens zijn gewist."
+    )
+
+
+def reset_zelfde_voertuig():
+
+    # Voertuiggegevens behouden
+    # Alleen diagnosevelden leegmaken
+
+    sleutels = [
+        "kilometerstand",
+        "foutcode",
+        "klacht",
+        "extra_info",
+        "laatste_diagnose",
+        "chat_history",
+        "diagnose_chat_input",
+    ]
+
+    for sleutel in sleutels:
+        st.session_state[sleutel] = ""
+
+    st.session_state["reset_melding"] = (
+        "Nieuwe diagnose gestart voor hetzelfde voertuig."
+    )
+
+
 # ============================================================
 # WENSINK MERCEDES-BENZ DIAGNOSE ASSISTENT
 # DEEL 1: INSTELLINGEN EN RDW-KOPPELING
