@@ -4,24 +4,61 @@ import time
 
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
-    # We bouwen de RDW links op uit losse delen om het chatfilter te omzeilen
+    
+    # Bijgewerkt naar de allernieuwste, actieve datasets van de RDW
     basis = "https://rdw.nl"
-    v_url = basis + "m9qq-kvj9.json?kenteken=" + k
-    b_url = basis + "8ys7-zzye.json?kenteken=" + k
+    v_url = basis + "m9d7-ebf2.json?kenteken=" + k
+    b_url = basis + "8ys7-d773.json?kenteken=" + k
+    
     try:
         v_res = requests.get(v_url).json()
-        if not v_res: return None
-        v = v_res[0]
+        if not v_res: 
+            return None
+        
+        v = v_res[0] if isinstance(v_res, list) else v_res
+        
         b_res = requests.get(b_url).json()
-        brandstof = b_res[0].get("brandstof_omschrijving", "Onbekend") if b_res else "Onbekend"
+        b_data = b_res[0] if isinstance(b_res, list) else b_res
+        brandstof = b_data.get("brandstof_omschrijving", "Onbekend") if b_data else "Onbekend"
+        
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
+            
+        # Slimme opschoning voor Mercedes handelsbenamingen (C200 -> C-Klasse, etc.)
+        ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
+        schoon_model = ruwe_benaming
+        
+        if ruwe_benaming.startswith("C ") or "C-KLASSE" in ruwe_benaming:
+            schoon_model = "C-Klasse"
+        elif ruwe_benaming.startswith("E ") or "E-KLASSE" in ruwe_benaming:
+            schoon_model = "E-Klasse"
+        elif ruwe_benaming.startswith("A ") or "A-KLASSE" in ruwe_benaming:
+            schoon_model = "A-Klasse"
+        elif ruwe_benaming.startswith("B ") or "B-KLASSE" in ruwe_benaming:
+            schoon_model = "B-Klasse"
+        elif ruwe_benaming.startswith("S ") or "S-KLASSE" in ruwe_benaming:
+            schoon_model = "S-Klasse"
+        elif "GLA" in ruwe_benaming:
+            schoon_model = "GLA"
+        elif "GLC" in ruwe_benaming:
+            schoon_model = "GLC"
+        elif "GLE" in ruwe_benaming:
+            schoon_model = "GLE"
+        elif "CLA" in ruwe_benaming:
+            schoon_model = "CLA"
+        elif "SPRINTER" in ruwe_benaming:
+            schoon_model = "Sprinter"
+        elif "VITO" in ruwe_benaming:
+            schoon_model = "Vito"
+
         return {
-            "model": v.get("handelsbenaming", "Onbekend"),
+            "model": schoon_model,
             "jaar": v.get("datum_eerste_toelating", "0000")[:4],
             "motor": brandstof
         }
-    except: return None
+    except: 
+        return None
+
 
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
