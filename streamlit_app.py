@@ -42,8 +42,8 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Gecorrigeerd: Pak het eerste element uit de lijst via index 0
-                brandstof = b_res[0].get("brandstof_omschrijving", "Onbekend")
+                # Pak het eerste element uit de lijst via de juiste index
+                brandstof = b_res[0].get("brandstof_omschrijving", "Onbekend") if isinstance(b_res, list) else b_res.get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
@@ -80,8 +80,8 @@ def haal_rdw_data(kenteken):
     except:
         return None
 
-# Interface opbouw
-col1, col2 = st.columns()
+# Interface opbouw (Gecorrigeerd met kolomverhoudingen om TypeError te voorkomen)
+col1, col2 = st.columns([1, 6])
 with col1:
     st.image(LOGO_B64, width=65)
 with col2:
@@ -140,6 +140,6 @@ if submit and model and klacht:
                 poging += 1
                 
         if not succes:
-            st.error("Het AI-systeem is momenteel overbelast of onbereikbaar. Probeer het over een paar minutes nog eens.")
+            st.error("Het AI-systeem is momenteel overbelast of onbereikbaar. Probeer het over een paar minuten nog eens.")
 elif submit:
     st.warning("Vul tenminste het model en de klacht van de klant in.")
