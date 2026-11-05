@@ -18,7 +18,7 @@ st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, l
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
-        # Haal de voertuig- en brandstofgegevens op bij de RDW
+        # Haal de voertuig- en brandstofgegevens op bij de RDW Open Data
         v_res = requests.get("https://rdw.nl" + k).json()
         b_res = requests.get("https://rdw.nl" + k).json()
         
@@ -42,7 +42,7 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Gecorrigeerd: Pak het eerste object uit de lijst via de juiste index
+                # Correct gepakt uit het eerste object van de lijst
                 first_b = b_res[0] if isinstance(b_res, list) else b_res
                 brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
@@ -81,7 +81,7 @@ def haal_rdw_data(kenteken):
     except:
         return None
 
-# Interface opbouw (Gecorrigeerd met kolomverhoudingen om TypeError te voorkomen)
+# Interface opbouw
 col1, col2 = st.columns([1, 6])
 with col1:
     st.image(LOGO_B64, width=65)
