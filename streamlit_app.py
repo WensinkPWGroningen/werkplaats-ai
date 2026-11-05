@@ -5,10 +5,11 @@ import time
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
-    # Bijgewerkt naar de allernieuwste, actieve datasets van de RDW
-    basis = "https://rdw.nl"
-    v_url = basis + "m9d7-ebf2.json?kenteken=" + k
-    b_url = basis + "8ys7-d773.json?kenteken=" + k
+        # De correcte Open Data server van de RDW
+    b_domein = "https://opendata.rdw.nl"
+    v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
+    b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
+
     
     try:
         v_res = requests.get(v_url).json()
