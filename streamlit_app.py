@@ -18,7 +18,7 @@ st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, l
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
-        # Haal de basis voertuiggegevens op via het officiële Open Data endpoint (m9d7-ebf2)
+        # Aanroep naar de vernieuwde, stabiele hoofd-dataset van de RDW
         v_url = "https://rdw.nl" + str(k)
         v_resp = requests.get(v_url, timeout=5)
         v_json = v_resp.json()
@@ -26,7 +26,7 @@ def haal_rdw_data(kenteken):
         if not v_json or not isinstance(v_json, list) or len(v_json) == 0:
             return None
             
-        # Pak het eerste voertuig-object veilig uit de lijst door de list-methoden te omzeilen
+        # Pak veilig het eerste voertuig-object zonder indexen te gebruiken
         v = None
         for item in v_json:
             v = item
@@ -35,14 +35,14 @@ def haal_rdw_data(kenteken):
         if not v:
             return None
             
-        # Haal de bijbehorende brandstofgegevens op via het brandstof-endpoint (8ys7-d773)
+        # Aanroep naar de vernieuwde brandstof-dataset van de RDW
         b_url = "https://rdw.nl" + str(k)
         b_resp = requests.get(b_url, timeout=5)
         b_json = b_resp.json()
         
         brandstof = "Onbekend"
         if b_json and isinstance(b_json, list) and len(b_json) > 0:
-            # Verzamel alle brandstofomschrijvingen voor hybride-controle
+            # Verzamel alle brandstofomschrijvingen voor de hybride-check
             omschrijvingen = []
             for b in b_json:
                 if b:
@@ -60,7 +60,7 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Pak de brandstofomschrijving van het eerste element uit de lus om indexen te omzeilen
+                # Pak de omschrijving uit de eerste regel via een lus om indexen te omzeilen
                 for first_b in b_json:
                     brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
                     break
@@ -101,7 +101,7 @@ def haal_rdw_data(kenteken):
         print("RDW Fout: " + str(e))
         return None
 
-# Interface opbouw (Inclusief een vaste 2-kolomsindeling)
+# Interface opbouw (Vaste kolomaanroep om TypeErrors te voorkomen)
 col1, col2 = st.columns(2)
 with col1:
     st.image(LOGO_B64, width=65)
