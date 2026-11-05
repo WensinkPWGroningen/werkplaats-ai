@@ -1,16 +1,14 @@
 import streamlit as st
 import requests
 
-# Jouw unieke Google AI-sleutel
-GOOGLE_API_KEY = "AQ.Ab8RN6JUgEScnQVhSO8DCb6pAwQ1qWZaj3pbvQYef7l3NJw7TA"
+# Gebruik bij voorkeur st.secrets["GOOGLE_API_KEY"] voor veiligheid
+GOOGLE_API_KEY = "PLAATS_HIER_JE_NIEUWE_API_SLEUTEL"
 
-# Pagina-instellingen voor de tablet
 st.set_page_config(page_title="Werkplaats AI Diagnose Assistent", page_icon="🚗", layout="centered")
 
 st.title("🚗 Werkplaats AI Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht diagnose-advies inclusief teststappen.")
 
-# Invoerformulier voor de monteur
 with st.form("diagnose_form"):
     col1, col2 = st.columns(2)
     with col1:
@@ -25,14 +23,11 @@ with st.form("diagnose_form"):
     
     submit_button = st.form_submit_button(label="Genereer Diagnose & Teststappen")
 
-# AI logica wanneer de monteur op de knop drukt
 if submit_button:
     if not model or not klacht:
         st.warning("Vul tenminste het model en de klacht van de klant in.")
     else:
         with st.spinner("Google AI analyseert de klacht en formuleert teststappen..."):
-            
-            # De strikte instructies voor de AI
             system_prompt = (
                 "Jij bent een master-technicus en diagnose-expert bij een officiële merkdealer. "
                 "Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch, professioneel diagnose-advies. "
@@ -46,20 +41,13 @@ if submit_button:
             
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # DE GECORRIGEERDE LINK: Volledig uitgeschreven zonder verborgen plakkers
+            # Gecorrigeerde Gemini API URL
             url = f"https://googleapis.com{GOOGLE_API_KEY}"
             
-            headers = {
-                "Content-Type": "application/json"
-            }
-            
+            headers = {"Content-Type": "application/json"}
             payload = {
-                "contents": [{
-                    "parts": [{"text": user_prompt}]
-                }],
-                "systemInstruction": {
-                    "parts": [{"text": system_prompt}]
-                }
+                "contents": [{"parts": [{"text": user_prompt}]}],
+                "systemInstruction": {"parts": [{"text": system_prompt}]}
             }
             
             try:
@@ -70,8 +58,9 @@ if submit_button:
                     st.code(response.text)
                 else:
                     result_json = response.json()
-                    ai_text = result_json['candidates']['content']['parts']['text']
-                    st.success("Diagnose Advies & Teststappen (Aangedreven door Google AI):")
+                    # Gecorrigeerde indexering met [0]
+                    ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
+                    st.success("Diagnose Advies & Teststappen:")
                     st.markdown(ai_text)
                 
             except Exception as e:
