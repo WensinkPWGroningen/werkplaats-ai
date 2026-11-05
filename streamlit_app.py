@@ -42,7 +42,7 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Gecorrigeerd: Pak het eerste object uit de lijst via index [0]
+                # Gecorrigeerd: Pak het eerste object uit de lijst via de juiste index
                 first_b = b_res[0] if isinstance(b_res, list) else b_res
                 brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
@@ -81,8 +81,8 @@ def haal_rdw_data(kenteken):
     except:
         return None
 
-# Interface opbouw
-col1, col2 = st.columns()
+# Interface opbouw (Gecorrigeerd met kolomverhoudingen om TypeError te voorkomen)
+col1, col2 = st.columns([1, 6])
 with col1:
     st.image(LOGO_B64, width=65)
 with col2:
