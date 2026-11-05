@@ -19,24 +19,30 @@ def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
         # Haal de basis voertuiggegevens op via het stabiele RDW basis-endpoint
-        v_url = f"https://rdw.nl{k}"
+        v_url = "https://rdw.nl" + str(k)
         v_resp = requests.get(v_url, timeout=5)
         v_json = v_resp.json()
         
         if not v_json or not isinstance(v_json, list) or len(v_json) == 0:
             return None
             
-        v = v_json[0] # Pak het eerste voertuig-object uit de lijst
+        # Pak het eerste voertuig-object veilig uit de lijst zonder vierkante haken te gebruiken
+        v = v_json.pop(0)
         
         # Haal de bijbehorende brandstofgegevens op via het brandstof-endpoint
-        b_url = f"https://rdw.nl{k}"
+        b_url = "https://rdw.nl" + str(k)
         b_resp = requests.get(b_url, timeout=5)
         b_json = b_resp.json()
         
         brandstof = "Onbekend"
         if b_json and isinstance(b_json, list) and len(b_json) > 0:
             # Verzamel alle brandstofomschrijvingen voor hybride-controle
-            omschrijvingen = [b.get("brandstof_omschrijving", "").upper() for b in b_json if b]
+            omschrijvingen = []
+            for b in b_json:
+                if b:
+                    o = b.get("brandstof_omschrijving", "").upper()
+                    if o:
+                        omschrijvingen.append(o)
             
             heeft_elektro = any("ELEKTR" in o for o in omschrijvingen)
             heeft_brandstofmotor = any("BENZ" in o or "DIES" in o for o in omschrijvingen)
@@ -48,7 +54,9 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                brandstof = b_json[0].get("brandstof_omschrijving", "Onbekend")
+                # Pak het eerste brandstof-object veilig uit de lijst zonder vierkante haken
+                first_b = b_json.pop(0)
+                brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
@@ -83,11 +91,10 @@ def haal_rdw_data(kenteken):
             
         return {"model": schoon_model, "jaar": v.get("datum_eerste_toelating", "0000")[:4], "motor": brandstof}
     except Exception as e:
-        # Log de fout onzichtbaar naar de Streamlit console voor debugging indien nodig
-        print(f"RDW Fout: {e}")
+        print("RDW Fout: " + str(e))
         return None
 
-# Interface opbouw (Gecorrigeerd met kolomverhouding)
+# Interface opbouw (Inclusief een vaste kolomindeling)
 col1, col2 = st.columns([1, 6])
 with col1:
     st.image(LOGO_B64, width=65)
@@ -125,7 +132,7 @@ with st.form("diagnose_form"):
 
 if submit and model and klacht:
     with st.spinner("Google AI analyseert de klacht..."):
-        sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
+        sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) and de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
         user_p = "Merk: Mercedes-Benz\nModel: " + str(model) + " (" + str(bouwjaar) + ")\nMotor: " + str(motorisering) + "\nStoringscode: " + str(foutcode if foutcode else "Geen") + "\nKlacht: " + str(klacht)
         url = "https://googleapis.com" + st.secrets["GOOGLE_API_KEY"]
         payload = {"contents": [{"parts": [{"text": user_p}]}], "systemInstruction": {"parts": [{"text": sys_p}]}}
