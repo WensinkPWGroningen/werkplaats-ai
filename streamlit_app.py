@@ -1173,3 +1173,109 @@ if st.session_state.get("laatste_diagnose"):
 # ============================================================
 # EINDE DEEL 4B
 # ============================================================
+
+# ============================================================
+# DEEL 5: NIEUWE DIAGNOSE STARTEN
+# ============================================================
+
+st.divider()
+
+st.subheader("5. Nieuwe diagnose starten")
+
+st.write(
+    "Kies hieronder of je een ander voertuig wilt "
+    "invoeren of een nieuwe diagnose voor hetzelfde voertuig wilt starten."
+)
+
+col_nieuw, col_zelfde = st.columns(2)
+
+# ============================================================
+# KNOP 1: NIEUW VOERTUIG
+# ============================================================
+
+with col_nieuw:
+
+    if st.button(
+        "NIEUW VOERTUIG",
+        use_container_width=True,
+        type="primary"
+    ):
+
+        # VOERTUIGGEGEVENS WISSEN
+
+        voertuig_sleutels = [
+            "rdw_model",
+            "rdw_jaar",
+            "rdw_motor",
+            "rdw_handelsbenaming",
+            "rdw_kenteken"
+        ]
+
+        for sleutel in voertuig_sleutels:
+
+            st.session_state.pop(
+                sleutel,
+                None
+            )
+
+        # OUDE DIAGNOSE EN CHAT WISSEN
+
+        diagnose_sleutels = [
+            "laatste_diagnose",
+            "chat_history",
+            "diagnose_chat_input"
+        ]
+
+        for sleutel in diagnose_sleutels:
+
+            st.session_state.pop(
+                sleutel,
+                None
+            )
+
+        st.success(
+            "Alle voertuig- en diagnosegegevens zijn gewist."
+        )
+
+        st.rerun()
+
+
+# ============================================================
+# KNOP 2: ZELFDE VOERTUIG
+# ============================================================
+
+with col_zelfde:
+
+    if st.button(
+        "ZELFDE VOERTUIG",
+        use_container_width=True
+    ):
+
+        # VOERTUIGGEGEVENS BLIJVEN BEWAARD
+
+        # ALLEEN OUDE DIAGNOSEGEGEVENS WISSEN
+
+        diagnose_sleutels = [
+            "laatste_diagnose",
+            "chat_history",
+            "diagnose_chat_input"
+        ]
+
+        for sleutel in diagnose_sleutels:
+
+            st.session_state.pop(
+                sleutel,
+                None
+            )
+
+        st.success(
+            "Nieuwe diagnose gestart. "
+            "De voertuiggegevens zijn behouden."
+        )
+
+        st.rerun()
+
+
+# ============================================================
+# EINDE DEEL 5
+# ============================================================
