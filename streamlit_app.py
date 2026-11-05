@@ -79,7 +79,7 @@ if submit_button:
                         success = True
                         break  # Stop de loop, want het is gelukt!
                         
-                    elif response.status_code in:
+                        elif (response.status_code == 429) or (response.status_code == 503):
                         # Server overbelast of te veel verzoeken: wacht even en probeer opnieuw
                         if attempt < max_retries - 1:
                             st.warning(f"Google Server heeft het druk (Status {response.status_code}). Nieuwe poging over 3 seconden... (Poging {attempt + 1}/{max_retries})")
