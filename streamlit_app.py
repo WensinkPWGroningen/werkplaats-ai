@@ -42,8 +42,9 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Pak het eerste element uit de lijst via de juiste index
-                brandstof = b_res[0].get("brandstof_omschrijving", "Onbekend") if isinstance(b_res, list) else b_res.get("brandstof_omschrijving", "Onbekend")
+                # Gecorrigeerd: Pak het eerste element uit de lijst via index [0]
+                first_b = b_res[0] if isinstance(b_res, list) else b_res
+                brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
@@ -80,7 +81,7 @@ def haal_rdw_data(kenteken):
     except:
         return None
 
-# Interface opbouw (Gecorrigeerd met kolomverhoudingen om TypeError te voorkomen)
+# Interface opbouw
 col1, col2 = st.columns([1, 6])
 with col1:
     st.image(LOGO_B64, width=65)
@@ -118,7 +119,7 @@ with st.form("diagnose_form"):
 
 if submit and model and klacht:
     with st.spinner("Google AI analyseert de klacht..."):
-        sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) and de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
+        sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
         user_p = "Merk: Mercedes-Benz\nModel: " + str(model) + " (" + str(bouwjaar) + ")\nMotor: " + str(motorisering) + "\nStoringscode: " + str(foutcode if foutcode else "Geen") + "\nKlacht: " + str(klacht)
         url = "https://googleapis.com" + st.secrets["GOOGLE_API_KEY"]
         payload = {"contents": [{"parts": [{"text": user_p}]}], "systemInstruction": {"parts": [{"text": sys_p}]}}
