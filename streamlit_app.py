@@ -44,7 +44,10 @@ if submit_button:
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
             # Gecorrigeerde Gemini API URL
-            url = f"https://googleapis.com{GOOGLE_API_KEY}"
+            basis_url = "https://googleapis.com"
+            model_pad = "gemini-2.5-flash:generateContent?key="
+            url = basis_url + model_pad + GOOGLE_API_KEY
+
             
             headers = {"Content-Type": "application/json"}
             payload = {
