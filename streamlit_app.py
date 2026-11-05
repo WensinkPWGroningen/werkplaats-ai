@@ -67,7 +67,7 @@ GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 # Pagina-instellingen voor de tablet in de werkplaats
 st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon="🚗", layout="centered")
 
-st.title("🚗 Mercedes-Benz AI Diagnose Assistent")
+st.title("🚗 Wensink Mercedes-Benz Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
 
 # Kenteken invoer buiten het diagnoseformulier om direct te kunnen laden
