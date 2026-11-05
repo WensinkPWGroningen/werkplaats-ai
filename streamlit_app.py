@@ -18,20 +18,26 @@ st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, l
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
-        # Haal de voertuig- en brandstofgegevens op bij de RDW Open Data
-        v_res = requests.get("https://rdw.nl" + k).json()
-        b_res = requests.get("https://rdw.nl" + k).json()
+        # Haal de basis voertuiggegevens op via het stabiele RDW basis-endpoint
+        v_url = f"https://rdw.nl{k}"
+        v_resp = requests.get(v_url, timeout=5)
+        v_json = v_resp.json()
         
-        if not v_res or not b_res:
+        if not v_json or not isinstance(v_json, list) or len(v_json) == 0:
             return None
             
-        v = v_res[0] if isinstance(v_res, list) else v_res
+        v = v_json[0] # Pak het eerste voertuig-object uit de lijst
         
-        # Verzamel alle brandstofomschrijvingen voor hybride-controle
-        omschrijvingen = [b.get("brandstof_omschrijving", "").upper() for b in b_res if b]
+        # Haal de bijbehorende brandstofgegevens op via het brandstof-endpoint
+        b_url = f"https://rdw.nl{k}"
+        b_resp = requests.get(b_url, timeout=5)
+        b_json = b_resp.json()
+        
         brandstof = "Onbekend"
-        
-        if len(omschrijvingen) > 0:
+        if b_json and isinstance(b_json, list) and len(b_json) > 0:
+            # Verzamel alle brandstofomschrijvingen voor hybride-controle
+            omschrijvingen = [b.get("brandstof_omschrijving", "").upper() for b in b_json if b]
+            
             heeft_elektro = any("ELEKTR" in o for o in omschrijvingen)
             heeft_brandstofmotor = any("BENZ" in o or "DIES" in o for o in omschrijvingen)
             
@@ -42,9 +48,7 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Correct gepakt uit het eerste object van de lijst
-                first_b = b_res[0] if isinstance(b_res, list) else b_res
-                brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
+                brandstof = b_json[0].get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
@@ -78,10 +82,12 @@ def haal_rdw_data(kenteken):
             schoon_model = "Vito"
             
         return {"model": schoon_model, "jaar": v.get("datum_eerste_toelating", "0000")[:4], "motor": brandstof}
-    except:
+    except Exception as e:
+        # Log de fout onzichtbaar naar de Streamlit console voor debugging indien nodig
+        print(f"RDW Fout: {e}")
         return None
 
-# Interface opbouw
+# Interface opbouw (Gecorrigeerd met kolomverhouding)
 col1, col2 = st.columns([1, 6])
 with col1:
     st.image(LOGO_B64, width=65)
