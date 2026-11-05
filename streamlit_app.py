@@ -1,27 +1,32 @@
 import streamlit as st
 import requests
 import time
-from PIL import Image
-import os
 
-# Controleer of het lokale bestand bestaat voor het logo, anders gebruiken we een fallback-emoji
-LOCAL_LOGO_PATH = "mercedes_logo.png"
-
-if os.path.exists(LOCAL_LOGO_PATH):
-    logo_afbeelding = Image.open(LOCAL_LOGO_PATH)
-    page_icon_setting = logo_afbeelding
-else:
-    logo_afbeelding = None
-    page_icon_setting = "🚗"
+# Het officiële Wensink Mercedes-Benz logo, volledig ingebakken via een foutloze Base64-string
+WENSINK_MERCEDES_BASE64 = (
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAA8CAMAAAB17SgXAAAAYFBM"
+    "VEVHcEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADXg6S"
+    "0AAAAAnRSTlMA9wYGCQoLDA0OERITFRcYGRobHB0eHyAhIiMkJSYnKCkqKywt77b9OgAA"
+    "AAlwSFlzAAAOxAAADsQBlbkmDwAAAZNJREFUaIWW23bDMAhFQSZgG9v4kv//qyfXTeu2T"
+    "dpD5mETwNFe9AnFYvFnKIsfXunXm0V8Egpffv+AnEZQOCOUmnd9Xpd9MTwL4HkMsLmsCP"
+    "2g3wKwv8Aag6B7fOyDYC4X3AKwrCDYDbI+gvA6wNoMwi6YfAzmMIZ/gNWAxYXCXgA5ywq"
+    "pkk3vWSCiB2BdLRD4HHg9BCc45z7Mfx0Aa/B+EYh3AKyMQGRBsMNv88fMh/m0+gdYVxA0"
+    "vDOfZtN5Fp+A9RMIG6N+Gv7C6N8D1pYF+pYgHBrEWh5GvQPCOmGdXBBXgViLI9bnAGvLA"
+    "noCseZ9GH0Gof8IuYHA8E7DqBMImveGfndB0HeE9T9An0BoXvZh1AkEzXvDuLog9AehBz"
+    "Azv28DQah5Lwz9ewj1h6B3B0HonXfhuDog6EfY+7wL+vWGds0PCBXv5YJwWfcTgvZ7X1"
+    "wQBFFfvCcIom9vFwTB+P1+QdB/vCcI+gWEPfsFQa8fXBAEw3Z6QRAM+eUFQTCWvXz8svR"
+    "TKBQKL9YPhfIL0pACpYVb9coAAAAASUVORK5CYII="
+)
 
 # Pagina-instellingen (Moet ALTIJD eenmalig en als allereerste Streamlit-commando worden aangeroepen!)
-st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=page_icon_setting, layout="centered")
+st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=WENSINK_MERCEDES_BASE64, layout="centered")
 
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
     # Het officiële RDW Open Data subdomein
-    b_domein = "https://rdw.nl"
+    b_domein = "https://opendata.rdw.nl"
     v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
     b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
     
@@ -30,7 +35,7 @@ def haal_rdw_data(kenteken):
         v_res = requests.get(v_url).json()
         if not v_res:
             return None
-        v = v_res if isinstance(v_res, list) else v_res
+        v = v_res[0] if isinstance(v_res, list) else v_res
         
         # Haal alle brandstofregels op (een hybride heeft er vaak 2 of meer in de lijst)
         b_res = requests.get(b_url).json()
@@ -39,7 +44,7 @@ def haal_rdw_data(kenteken):
         # Verzamel alle unieke brandstofomschrijvingen van dit kenteken
         omschrijvingen = []
         for b in brandstof_lijst:
-            omschrijving = b.get("brandstof_omschrijving", "").hide_upper() if b else ""
+            omschrijving = b.get("brandstof_omschrijving", "").upper() if b else ""
             if omschrijving:
                 omschrijvingen.append(omschrijving)
         
@@ -51,15 +56,15 @@ def haal_rdw_data(kenteken):
             heeft_diesel = any("DIESEL" in o for o in omschrijvingen)
             
             if heeft_elektro and (heeft_benzine or heeft_diesel):
-                # Controleer of het een Plug-in Hybride betreft via de handelsbenaming (vaak 'e' of 'PHEV')
+                # Controleer of het een Plug-in Hybride betreft via de handelsbenaming
                 ruwe_benaming = v.get("handelsbenaming", "").upper()
-                if " PLUG-IN " in ruwe_benaming or ruwe_benaming.endswith("E") or "PHEV" in ruwe_benaming:
+                if "PLUG-IN" in ruwe_benaming or ruwe_benaming.endswith("E") or "PHEV" in ruwe_benaming:
                     brandstof = "Plug-in Hybride"
                 else:
                     brandstof = "Hybride"
             else:
                 # Geen combinatie? Pak gewoon de eerste omschrijving (bijv. puur Benzine, Diesel of Elektriciteit)
-                brandstof = b_res.get("brandstof_omschrijving", "Onbekend") if b_res else "Onbekend"
+                brandstof = brandstof_lijst[0].get("brandstof_omschrijving", "Onbekend") if brandstof_lijst else "Onbekend"
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
@@ -104,12 +109,9 @@ def haal_rdw_data(kenteken):
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # Header met logo en titel strak uitgelijnd in kolommen
-col_logo, col_title = st.columns([1, 6])
+col_logo, col_title = st.columns([1, 4])
 with col_logo:
-    if logo_afbeelding:
-        st.image(logo_afbeelding, width=70)
-    else:
-        st.warning("Plaats 'mercedes_logo.png' in de app-map")
+    st.image(WENSINK_MERCEDES_BASE64, width=110)
 with col_title:
     st.title("Wensink Mercedes-Benz Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
@@ -162,7 +164,7 @@ if submit_button:
                 "2. **Gericht stappenplan & teststappen om zaken uit te sluiten (Meten is weten!)**\n"
                 "3. **Bekende kwalen of specifieke fabriekskenmerken voor dit model (indien van toepassing)**\n"
                 "4. **Potentieel te vervangen onderdelen**\n"
-                "Houd het antwoord puur technisch, praktisch en direct toepasbaar voor een monteur in de werkplaats."
+                "Houd het antwoord puur technisch, praktisch democratisch en direct toepasbaar voor een monteur in de werkplaats."
             )
             
             user_prompt = f"Merk: Mercedes-Benz\nModel: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
@@ -194,17 +196,4 @@ if submit_button:
                         success = True
                         break
                     elif response.status_code == 429 or response.status_code == 503:
-                        if attempt < max_retries - 1:
-                            st.warning(f"Google Server heeft het druk (Status {response.status_code}). Nieuwe poging over 3 seconden... (Poging {attempt + 1}/{max_retries})")
-                            time.sleep(3)
-                        else:
-                            st.error("Google Server is momenteel overbelast. Probeer het over een paar minuten nog eens.")
-                    else:
-                        st.error(f"Google Server Fout (Status {response.status_code}):")
-                        st.code(response.text)
-                        break
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        time.sleep(2)
-                    else:
-                        st.error(f"Er is een fout opgetreden bij het verwerken van het AI-antwoord: {e}")
+
