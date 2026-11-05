@@ -19,13 +19,13 @@ def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     try:
         # Haal de voertuig- en brandstofgegevens op bij de RDW
-        v_data = requests.get("https://rdw.nl" + k).json()
+        v_res = requests.get("https://rdw.nl" + k).json()
         b_res = requests.get("https://rdw.nl" + k).json()
         
-        if not v_data or not b_res:
+        if not v_res or not b_res:
             return None
             
-        v = v_data[0] if isinstance(v_data, list) else v_data
+        v = v_res[0] if isinstance(v_res, list) else v_res
         
         # Verzamel alle brandstofomschrijvingen voor hybride-controle
         omschrijvingen = [b.get("brandstof_omschrijving", "").upper() for b in b_res if b]
@@ -42,14 +42,14 @@ def haal_rdw_data(kenteken):
                 else:
                     brandstof = "Hybride"
             else:
-                # Gecorrigeerd: Pak de brandstofomschrijving uit het eerste element van de lijst
+                # Gecorrigeerd: Pak het eerste element uit de lijst via index 0
                 brandstof = b_res[0].get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
             
-        # Herstelde, slimme model-opschoning voor Mercedes handelsbenamingen
+        # Slimme model-opschoning voor Mercedes handelsbenamingen
         ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
         schoon_model = ruwe_benaming
         
@@ -81,7 +81,7 @@ def haal_rdw_data(kenteken):
         return None
 
 # Interface opbouw
-col1, col2 = st.columns([1, 5])
+col1, col2 = st.columns()
 with col1:
     st.image(LOGO_B64, width=65)
 with col2:
@@ -130,9 +130,9 @@ if submit and model and klacht:
                 res = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
                 if res.status_code == 200:
                     st.success("Mercedes-Benz Diagnose Advies & Teststappen:")
-                    st.markdown(res.json()["candidates"][0]["content"]["parts"][0]["text"])
+                    st.markdown(res.json()["candidates"]["content"]["parts"]["text"])
                     succes = True
-                if res.status_code != 200:
+                else:
                     time.sleep(2)
                     poging += 1
             except:
@@ -140,6 +140,6 @@ if submit and model and klacht:
                 poging += 1
                 
         if not succes:
-            st.error("Het AI-systeem is momenteel overbelast of onbereikbaar. Probeer het over een paar minuten nog eens.")
+            st.error("Het AI-systeem is momenteel overbelast of onbereikbaar. Probeer het over een paar minutes nog eens.")
 elif submit:
     st.warning("Vul tenminste het model en de klacht van de klant in.")
