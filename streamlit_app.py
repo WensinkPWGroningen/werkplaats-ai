@@ -5,39 +5,38 @@ import time
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
-        # De correcte Open Data server van de RDW
-    b_domein = "https://opendata.rdw.nl"
+    # De correcte Open Data server van de RDW
+    b_domein = "https://rdw.nl"
     v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
     b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
-
     
     try:
         v_res = requests.get(v_url).json()
-        if not v_res: 
+        if not v_res:
             return None
-        
-        v = v_res[0] if isinstance(v_res, list) else v_res
+        v = v_res if isinstance(v_res, list) else v_res
         
         b_res = requests.get(b_url).json()
-        b_data = b_res[0] if isinstance(b_res, list) else b_res
+        b_data = b_res if isinstance(b_res, list) else b_res
+        
         brandstof = b_data.get("brandstof_omschrijving", "Onbekend") if b_data else "Onbekend"
         
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
             
-        # Slimme opschoning voor Mercedes handelsbenamingen (C200 -> C-Klasse, etc.)
+        # Slimme opschoning voor Mercedes handelsbenamingen
         ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
         schoon_model = ruwe_benaming
         
-        if ruwe_benaming.startswith("C ") or "C-KLASSE" in ruwe_benaming:
+        if ruwe_benaming.startswith("C") or "C-KLASSE" in ruwe_benaming:
             schoon_model = "C-Klasse"
-        elif ruwe_benaming.startswith("E ") or "E-KLASSE" in ruwe_benaming:
+        elif ruwe_benaming.startswith("E") or "E-KLASSE" in ruwe_benaming:
             schoon_model = "E-Klasse"
-        elif ruwe_benaming.startswith("A ") or "A-KLASSE" in ruwe_benaming:
+        elif ruwe_benaming.startswith("A") or "A-KLASSE" in ruwe_benaming:
             schoon_model = "A-Klasse"
-        elif ruwe_benaming.startswith("B ") or "B-KLASSE" in ruwe_benaming:
+        elif ruwe_benaming.startswith("B") or "B-KLASSE" in ruwe_benaming:
             schoon_model = "B-Klasse"
-        elif ruwe_benaming.startswith("S ") or "S-KLASSE" in ruwe_benaming:
+        elif ruwe_benaming.startswith("S") or "S-KLASSE" in ruwe_benaming:
             schoon_model = "S-Klasse"
         elif "GLA" in ruwe_benaming:
             schoon_model = "GLA"
@@ -51,23 +50,27 @@ def haal_rdw_data(kenteken):
             schoon_model = "Sprinter"
         elif "VITO" in ruwe_benaming:
             schoon_model = "Vito"
-
+            
         return {
             "model": schoon_model,
             "jaar": v.get("datum_eerste_toelating", "0000")[:4],
             "motor": brandstof
         }
-    except: 
+    except:
         return None
-
 
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
-# Pagina-instellingen voor de tablet in de werkplaats
-st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon="🚗", layout="centered")
+# URL naar een strak, transparant Mercedes-Benz logo voor de app
+MERCEDES_LOGO_URL = "https://wikimedia.org"
 
-st.title("🚗 Wensink Mercedes-Benz Diagnose Assistent")
+# Pagina-instellingen voor de tablet in de werkplaats (MERCEDES_LOGO_URL ingesteld als tab-icoon)
+st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=MERCEDES_LOGO_URL, layout="centered")
+
+# Header met het officiële logo gecentreerd/boven de titel
+st.image(MERCEDES_LOGO_URL, width=100)
+st.title("Wensink Mercedes-Benz Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
 
 # Kenteken invoer buiten het diagnoseformulier om direct te kunnen laden
@@ -78,6 +81,7 @@ if st.button("Haal voertuiggegevens op"):
     if kenteken_invoer:
         with st.spinner("Gegevens ophalen bij de RDW..."):
             data = haal_rdw_data(kenteken_invoer)
+            
             if data == "GEEN_MERCEDES":
                 st.error("Dit kenteken is niet van een Mercedes-Benz. Deze app is uitsluitend voor Mercedes-Benz.")
             elif data:
@@ -85,22 +89,22 @@ if st.button("Haal voertuiggegevens op"):
                 st.session_state["rdw_jaar"] = data["jaar"]
                 st.session_state["rdw_motor"] = data["motor"]
                 st.success("Voertuig succesvol opgehaald!")
+                st.rerun()
             else:
                 st.warning("Kenteken niet gevonden of RDW onbereikbaar. Vul de velden handmatig in.")
 
-# Het formulier gebruikt nu de ingeladen RDW-data als standaardwaarde
+# Het formulier gebruikt nu de ingeladen RDW-data via de st.session_state koppeling (key=...)
 with st.form("diagnose_form"):
     col1, col2 = st.columns(2)
     with col1:
-        model = st.text_input("Model auto", value=st.session_state.get("rdw_model", ""), placeholder="Bijv. C-Klasse (W205)")
-        bouwjaar = st.text_input("Bouwjaar", value=st.session_state.get("rdw_jaar", ""), placeholder="Bijv. 2018")
+        model = st.text_input("Model auto", key="rdw_model", placeholder="Bijv. C-Klasse (W205)")
+        bouwjaar = st.text_input("Bouwjaar", key="rdw_jaar", placeholder="Bijv. 2018")
     with col2:
-        motorisering = st.text_input("Motor / Brandstof", value=st.session_state.get("rdw_motor", ""), placeholder="Bijv. 220d / EV")
+        motorisering = st.text_input("Motor / Brandstof", key="rdw_motor", placeholder="Bijv. 220d / EV")
         foutcode = st.text_input("Storingscode / DTC (Optioneel)", placeholder="Bijv. P0301 of U0100")
-
+        
     klacht = st.text_area("Omschrijving van de klacht / symptomen", placeholder="Bijv. Motor houdt in rond de 2000 toeren...")
     submit_button = st.form_submit_button(label="Genereer Diagnose & Teststappen")
-
 
 # AI logica wanneer de monteur op de knop drukt
 if submit_button:
@@ -108,9 +112,8 @@ if submit_button:
         st.warning("Vul tenminste het model en de klacht van de klant in.")
     else:
         with st.spinner("Google AI analyseert de klacht en formuleert Mercedes-Benz teststappen..."):
-            
             system_prompt = (
-                "Jij bent een gecertificeerde Mercedes-Benz Master Technician en diagnose-expert bij een officiële merkdealer. "
+                "Jij bent een gecertificeerde Mercedes-Benz Master Technician en diagnose-expert bij een officielle merkdealer. "
                 "Geef op basis van de Mercedes-Benz voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch, professioneel diagnose-advies. "
                 "Gebruik bij voorkeur specifieke Mercedes-termen (zoals Xentry, Star Diagnosis of WIS-richtlijnen indien van toepassing). "
                 "Gebruik ALTIJD de volgende vaste structuur in je antwoord:\n"
@@ -123,13 +126,11 @@ if submit_button:
             
             user_prompt = f"Merk: Mercedes-Benz\nModel: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
-            # Veilige URL-opbouw voor het filter
             s = "https://"
             d = "generativelanguage"
             g = "googleapis.com"
             volledig_domein = s + d + "." + g
-
-            pad = "/v1beta/models/gemini-3.8-flash:generateContent"
+            pad = "/v1beta/models/gemini-2.5-flash:generateContent"
             url = volledig_domein + pad + "?key=" + GOOGLE_API_KEY
             
             headers = {"Content-Type": "application/json"}
@@ -138,35 +139,29 @@ if submit_button:
                 "systemInstruction": {"parts": [{"text": system_prompt}]}
             }
             
-            # Instellingen voor de automatische retry-functie
             max_retries = 3
             success = False
             
             for attempt in range(max_retries):
                 try:
                     response = requests.post(url, headers=headers, json=payload)
-                    
                     if response.status_code == 200:
                         result_json = response.json()
-                        # Volledig herstelde JSON-parsing met de juiste lijsten-indexering
-                        ai_text = result_json['candidates']['content']['parts']['text']
+                        ai_text = result_json["candidates"]["content"]["parts"]["text"]
                         st.success("Mercedes-Benz Diagnose Advies & Teststappen:")
                         st.markdown(ai_text)
                         success = True
-                        break  # Stop de loop, want het is gelukt!
-                        
-                    elif (response.status_code == 429) or (response.status_code == 503):
-                        # Server overbelast of te veel verzoeken: wacht even en probeer opnieuw
+                        break
+                    elif response.status_code in [429, 503]:
                         if attempt < max_retries - 1:
                             st.warning(f"Google Server heeft het druk (Status {response.status_code}). Nieuwe poging over 3 seconden... (Poging {attempt + 1}/{max_retries})")
                             time.sleep(3)
                         else:
-                            st.error("Google Server is momenteel overbelast. Probeer het over een paar minuten nog eens.")
+                            st.error("Google Server is momenteel overbelast. Probeer het over een paar neurominuten nog eens.")
                     else:
                         st.error(f"Google Server Fout (Status {response.status_code}):")
                         st.code(response.text)
                         break
-                        
                 except Exception as e:
                     if attempt < max_retries - 1:
                         time.sleep(2)
