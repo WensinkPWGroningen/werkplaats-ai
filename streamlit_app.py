@@ -1,167 +1,926 @@
+
 import streamlit as st
 import requests
 import time
+import re
 
-# Compact Mercedes-Benz logo Base64 string
-LOGO_B64 = (
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAYrfwNAAAAYFBM"
-    "VEVHcEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADXg6S"
-    "0AAAAAnRSTlMA9wYGCQoLDA0OERITFRcYGRobHB0eHyAhIiMkJSYnKCkqKywt77b9OgAA"
-    "AAlwSFlzAAAOxAAADsQBlbkmDwAAAGRJREFUeNrtlcsWwyAMREfBwY/y/3/txI3bJnUT1"
-    "2MGmYfN69mRbMHOp1gURfEnKHbe0/XOnmshug6gP/RHEEIDoW6E3I3rNoIeBfAgBAH6wZ"
-    "9BcAbCvIDuBOsdmB0fXhRF8f0P8lsO6X8mC0UAAAAASUVORK5CYII="
+# ============================================================
+# WENSINK MERCEDES-BENZ DIAGNOSE ASSISTENT
+# DEEL 1: INSTELLINGEN EN RDW-KOPPELING
+# ============================================================
+
+st.set_page_config(
+    page_title="Wensink Mercedes Diagnose",
+    page_icon="🚘",
+    layout="wide"
 )
 
-st.set_page_config(page_title="Wensink Mercedes Diagnose", page_icon=LOGO_B64, layout="centered")
+# ============================================================
+# WENSINK HUISSTIJL
+# ============================================================
+
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #f4f6f9;
+    }
+
+    .main-title {
+        color: #111827;
+        font-size: 30px;
+        font-weight: 800;
+    }
+
+    .subtitle {
+        color: #64748b;
+        font-size: 15px;
+        margin-bottom: 25px;
+    }
+
+    .stButton button {
+        background-color: #111827;
+        color: white;
+        border-radius: 8px;
+        font-weight: bold;
+        min-height: 45px;
+    }
+
+    .stButton button:hover {
+        background-color: #374151;
+        color: white;
+        border-color: #374151;
+    }
+
+    .vehicle-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# RDW API INSTELLINGEN
+# ============================================================
+
+RDW_VOERTUIG_URL = (
+    "https://opendata.rdw.nl/resource/m9d7-ebf2.json"
+)
+
+RDW_BRANDSTOF_URL = (
+    "https://opendata.rdw.nl/resource/8ys7-d773.json"
+)
+
+
+# ============================================================
+# RDW VOERTUIGGEGEVENS OPHALEN
+# ============================================================
 
 def haal_rdw_data(kenteken):
-    k = kenteken.replace("-", "").replace(" ", "").upper()
-    try:
-        # Socrata API-aanroep voor de basis voertuiggegevens van de RDW
-        v_url = "https://rdw.nl" + str(k)
-        v_resp = requests.get(v_url, timeout=5)
-        v_json = v_resp.json()
-        
-        if not v_json or not isinstance(v_json, list) or len(v_json) == 0:
-            return None
-            
-        # Haal het eerste voertuig-object veilig uit de Socrata-lijst met een lus
-        v = None
-        for item in v_json:
-            v = item
-            break
-            
-        if not v:
-            return None
-        
-        # Socrata API-aanroep voor de bijbehorende brandstofgegevens van de RDW
-        b_url = "https://rdw.nl" + str(k)
-        b_resp = requests.get(b_url, timeout=5)
-        b_json = b_resp.json()
-        
-        brandstof = "Onbekend"
-        if b_json and isinstance(b_json, list) and len(b_json) > 0:
-            # Verzamel alle brandstofomschrijvingen voor de hybride-check
-            omschrijvingen = []
-            for b in b_json:
-                if b:
-                    o = b.get("brandstof_omschrijving", "").upper()
-                    if o:
-                        omschrijvingen.append(o)
-            
-            heeft_elektro = any("ELEKTR" in o for o in omschrijvingen)
-            heeft_brandstofmotor = any("BENZ" in o or "DIES" in o for o in omschrijvingen)
-            
-            if heeft_elektro and heeft_brandstofmotor:
-                r = v.get("handelsbenaming", "").upper()
-                if "PLUG" in r or r.endswith("E") or "PHEV" in r:
-                    brandstof = "Plug-in Hybride"
-                else:
-                    brandstof = "Hybride"
-            else:
-                # Haal de brandstofomschrijving veilig uit de Socrata-lijst via een lus
-                for first_b in b_json:
-                    brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
-                    break
 
-        # Controleer direct of het voertuig een Mercedes-Benz is
-        if v.get("merk", "").upper() != "MERCEDES-BENZ":
-            return "GEEN_MERCEDES"
-            
-        # Slimme model-opschoning voor Mercedes handelsbenamingen
-        ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
-        schoon_model = ruwe_benaming
-        
-        if ruwe_benaming.startswith("C") or "C-KLASSE" in ruwe_benaming:
-            schoon_model = "C-Klasse"
-        elif ruwe_benaming.startswith("E") or "E-KLASSE" in ruwe_benaming:
-            schoon_model = "E-Klasse"
-        elif ruwe_benaming.startswith("A") or "A-KLASSE" in ruwe_benaming:
-            schoon_model = "A-Klasse"
-        elif ruwe_benaming.startswith("B") or "B-KLASSE" in ruwe_benaming:
-            schoon_model = "B-Klasse"
-        elif ruwe_benaming.startswith("S") or "S-KLASSE" in ruwe_benaming:
-            schoon_model = "S-Klasse"
-        elif "GLA" in ruwe_benaming:
-            schoon_model = "GLA"
-        elif "GLC" in ruwe_benaming:
-            schoon_model = "GLC"
-        elif "GLE" in ruwe_benaming:
-            schoon_model = "GLE"
-        elif "CLA" in ruwe_benaming:
-            schoon_model = "CLA"
-        elif "SPRINTER" in ruwe_benaming:
-            schoon_model = "Sprinter"
-        elif "VITO" in ruwe_benaming:
-            schoon_model = "Vito"
-            
-        return {"model": schoon_model, "jaar": v.get("datum_eerste_toelating", "0000")[:4], "motor": brandstof}
-    except Exception as e:
-        print("RDW Socrata Fout: " + str(e))
+    kenteken = re.sub(
+        r"[^A-Z0-9]",
+        "",
+        kenteken.upper()
+    )
+
+    if not kenteken:
         return None
 
-# Interface opbouw (Gecorrigeerd met vast aantal kolommen)
-col1, col2 = st.columns(2)
-with col1:
-    st.image(LOGO_B64, width=65)
-with col2:
-    st.title("Wensink Diagnose Assistent")
-st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "Wensink-Diagnose-Assistent/1.0"
+    }
 
-kenteken_invoer = st.text_input("Voer kenteken in voor automatische overname", placeholder="Bijv. GG-123-X")
+    try:
 
-if st.button("Haal voertuiggegevens op") and kenteken_invoer:
-    with st.spinner("Gegevens ophalen bij de RDW..."):
-        data = haal_rdw_data(kenteken_invoer)
-        if data == "GEEN_MERCEDES":
-            st.error("Dit kenteken is niet van een Mercedes-Benz. Deze app is uitsluitend voor Mercedes-Benz.")
-        elif data:
-            st.session_state["rdw_model"] = data["model"]
-            st.session_state["rdw_jaar"] = data["jaar"]
-            st.session_state["rdw_motor"] = data["motor"]
-            st.success("Voertuig succesvol opgehaald!")
-            st.rerun()
+        # VOERTUIGGEGEVENS
+
+        response = requests.get(
+            RDW_VOERTUIG_URL,
+            params={
+                "kenteken": kenteken,
+                "$limit": 1
+            },
+            headers=headers,
+            timeout=15
+        )
+
+        response.raise_for_status()
+
+        voertuigen = response.json()
+
+        if not voertuigen:
+            return None
+
+        voertuig = voertuigen[0]
+
+        # MERK CONTROLEREN
+
+        merk = voertuig.get(
+            "merk", ""
+        ).strip().upper()
+
+        if merk not in (
+            "MERCEDES-BENZ",
+            "MERCEDES BENZ"
+        ):
+            return "GEEN_MERCEDES"
+
+        # BRANSTOFGEGEVENS
+
+        brandstof_response = requests.get(
+            RDW_BRANDSTOF_URL,
+            params={
+                "kenteken": kenteken,
+                "$limit": 10
+            },
+            headers=headers,
+            timeout=15
+        )
+
+        brandstof_response.raise_for_status()
+
+        brandstof_data = brandstof_response.json()
+
+        brandstoffen = [
+            item.get(
+                "brandstof_omschrijving", ""
+            ).upper()
+            for item in brandstof_data
+        ]
+
+        # BRANDSTOF HERKENNEN
+
+        heeft_elektrisch = any(
+            "ELEKTR" in b for b in brandstoffen
+        )
+
+        heeft_benzine = any(
+            "BENZINE" in b for b in brandstoffen
+        )
+
+        heeft_diesel = any(
+            "DIESEL" in b for b in brandstoffen
+        )
+
+        if heeft_elektrisch and (
+            heeft_benzine or heeft_diesel
+        ):
+            brandstof = "Hybride"
+
+        elif heeft_elektrisch:
+            brandstof = "Elektrisch"
+
+        elif heeft_benzine:
+            brandstof = "Benzine"
+
+        elif heeft_diesel:
+            brandstof = "Diesel"
+
+        elif brandstoffen:
+            brandstof = brandstoffen[0].title()
+
         else:
-            st.warning("Kenteken niet gevonden of RDW onbereikbaar. Vul de velden handmatig in.")
+            brandstof = "Onbekend"
+
+        # MERCEDES MODEL HERKENNING
+
+        ruwe_model = voertuig.get(
+            "handelsbenaming", "Onbekend"
+        ).strip().upper()
+
+        model_regels = [
+            ("SPRINTER", "Sprinter"),
+            ("VITO", "Vito"),
+            ("GLA", "GLA"),
+            ("GLB", "GLB"),
+            ("GLC", "GLC"),
+            ("GLE", "GLE"),
+            ("GLS", "GLS"),
+            ("CLA", "CLA"),
+            ("CLS", "CLS"),
+            ("EQS", "EQS"),
+            ("EQE", "EQE"),
+            ("EQB", "EQB"),
+            ("EQA", "EQA"),
+            ("SLK", "SLK"),
+            ("S-KLASSE", "S-Klasse"),
+            ("E-KLASSE", "E-Klasse"),
+            ("C-KLASSE", "C-Klasse"),
+            ("A-KLASSE", "A-Klasse"),
+            ("B-KLASSE", "B-Klasse")
+        ]
+
+        schoon_model = ruwe_model.title()
+
+        for zoekterm, modelnaam in model_regels:
+
+            if zoekterm in ruwe_model:
+                schoon_model = modelnaam
+                break
+
+        # BOUWJAAR
+
+        datum = str(
+            voertuig.get(
+                "datum_eerste_toelating", ""
+            )
+        )
+
+        bouwjaar = (
+            datum[:4]
+            if len(datum) >= 4
+            else "Onbekend"
+        )
+
+        # RESULTAAT TERUGGEVEN
+
+        return {
+            "kenteken": kenteken,
+            "merk": merk,
+            "model": schoon_model,
+            "handelsbenaming": ruwe_model,
+            "jaar": bouwjaar,
+            "motor": brandstof
+        }
+
+    except requests.exceptions.Timeout:
+
+        st.error("De RDW reageert niet op tijd.")
+        return None
+
+    except requests.exceptions.HTTPError as e:
+
+        st.error("RDW HTTP-fout: " + str(e))
+        return None
+
+    except requests.exceptions.RequestException as e:
+
+        st.error("RDW verbindingsfout: " + str(e))
+        return None
+
+    except Exception as e:
+
+        st.error("Onverwachte RDW-fout: " + str(e))
+        return None
+
+
+# ============================================================
+# EINDE DEEL 1
+# PLAK DEEL 2 HIERONDER
+# ============================================================
+
+# ============================================================
+# DEEL 2: GOOGLE GEMINI AI DIAGNOSE-ENGINE
+# ============================================================
+
+def genereer_diagnose(
+    model,
+    bouwjaar,
+    handelsbenaming,
+    motorisering,
+    kilometerstand,
+    foutcode,
+    klacht
+):
+
+    # GOOGLE API-SLEUTEL OPHALEN
+
+    api_key = st.secrets.get(
+        "GOOGLE_API_KEY", ""
+    )
+
+    if not api_key:
+        raise ValueError(
+            "GOOGLE_API_KEY ontbreekt in Streamlit secrets."
+        )
+
+    # ========================================================
+    # SYSTEEMPROMPT
+    # ========================================================
+
+    systeem_prompt = """
+Je bent een zeer ervaren Mercedes-Benz Master Technician
+met specialistische kennis van Mercedes-Benz voertuigen.
+
+Je hebt kennis van:
+
+- Mercedes-Benz benzinemotoren
+- Mercedes-Benz dieselmotoren
+- Plug-in hybride systemen
+- Volledig elektrische EQ-modellen
+- Automatische transmissies
+- 7G-Tronic en 9G-Tronic
+- OM-motoren
+- M-motoren
+- Mercedes-Benz motormanagement
+- AdBlue en SCR-systemen
+- DPF en EGR-systemen
+- Turbo- en injectiesystemen
+- 12V en 48V elektrische systemen
+- CAN-bus en LIN-bus
+- SAM-modules
+- ESP en ABS
+- Airconditioning
+- XENTRY diagnose
+
+Je bent gespecialiseerd in technische diagnose
+voor een professionele Mercedes-Benz werkplaats.
+
+BELANGRIJKE DIAGNOSEREGELS:
+
+1. Geef geen onderdelen vrij voor vervanging zonder
+   eerst een diagnose-onderbouwing te geven.
+
+2. Maak onderscheid tussen:
+   - Mogelijke oorzaak
+   - Waarschijnlijke oorzaak
+   - Bevestigd defect
+
+3. Geef altijd een logische diagnosevolgorde.
+
+4. Vermeld welke meetwaarden relevant zijn.
+
+5. Verzin geen fabriekswaarden, toleranties,
+   onderdeelnummers of technische specificaties.
+
+6. Wanneer exacte technische gegevens ontbreken,
+   verwijs dan naar de juiste Mercedes-Benz
+   werkplaatsdocumentatie of XENTRY.
+
+7. Houd rekening met het bouwjaar en de motorisering.
+
+8. Geef aan wanneer een VIN of motorcode noodzakelijk is.
+
+9. Geef praktische teststappen die een monteur
+   daadwerkelijk kan uitvoeren.
+
+10. Geef veiligheidswaarschuwingen wanneer werkzaamheden
+    aan hoogvoltage- of brandstofsystemen aan de orde zijn.
+
+11. Maak duidelijk wanneer een reparatie eerst door
+    aanvullende metingen moet worden bevestigd.
+
+12. Gebruik professioneel en technisch Nederlands.
+
+# VASTE STRUCTUUR VAN HET ANTWOORD
+
+## 1. Voertuigidentificatie
+Vat de voertuiggegevens samen.
+
+## 2. Klachtanalyse
+Analyseer de klacht en mogelijke oorzaken.
+
+## 3. Top 3 meest waarschijnlijke oorzaken
+Geef drie mogelijke oorzaken met technische onderbouwing.
+
+## 4. Diagnose stappenplan
+Geef een logisch stappenplan voor de monteur.
+
+Beschrijf per stap:
+- Wat controleren?
+- Hoe controleren?
+- Welke meetwaarden zijn relevant?
+- Wat betekent de uitkomst?
+
+## 5. Storingscode-analyse
+Analyseer de opgegeven DTC-codes.
+Leg uit wat ze betekenen en welke systemen erbij betrokken zijn.
+
+## 6. Bekende aandachtspunten
+Geef relevante aandachtspunten voor dit Mercedes-model
+en deze motorisering.
+Maak duidelijk wanneer informatie niet bevestigd is.
+
+## 7. Mogelijk defecte onderdelen
+Geef een lijst met mogelijke onderdelen.
+Vermeld waarom deze verdacht zijn en hoe ze getest worden.
+
+## 8. Eindadvies
+Geef aan welke controle de monteur als eerste moet uitvoeren.
+
+## 9. Diagnoseconclusie
+Geef een korte samenvatting met:
+- Meest waarschijnlijke oorzaak
+- Benodigde vervolgtest
+- Mate van zekerheid
+
+Let op:
+Een diagnose is pas definitief wanneer de relevante
+testresultaten het defect bevestigen.
+"""
+
+    # ========================================================
+    # GEBRUIKERSPROMPT
+    # ========================================================
+
+    gebruikers_prompt = f"""
+# MERCEDES-BENZ VOERTUIGGEGEVENS
+
+Merk: Mercedes-Benz
+
+Model: {model}
+
+Bouwjaar: {bouwjaar}
+
+Handelsbenaming: {handelsbenaming}
+
+Motor / Brandstof: {motorisering}
+
+Kilometerstand: {kilometerstand}
+
+# STORINGSGEGEVENS
+
+Storingscode(s): {foutcode if foutcode else "Niet opgegeven"}
+
+# KLACHTOMSCHRIJVING
+
+{klacht}
+
+# OPDRACHT
+
+Analyseer bovenstaande gegevens als een ervaren
+Mercedes-Benz Master Technician.
+
+Geef een technisch onderbouwd diagnoseadvies
+met een praktisch stappenplan voor de werkplaats.
+
+Houd rekening met het specifieke voertuig,
+de motorisering, het bouwjaar en de klacht.
+
+Verzin geen meetwaarden of technische specificaties.
+Geef duidelijk aan welke gegevens nog ontbreken.
+"""
+
+    # ========================================================
+    # GEMINI API INSTELLINGEN
+    # ========================================================
+
+    url = (
+        "https://generativelanguage.googleapis.com/"
+        "v1beta/models/gemini-2.5-flash:generateContent"
+    )
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key
+    }
+
+    payload = {
+
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": gebruikers_prompt
+                    }
+                ]
+            }
+        ],
+
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": systeem_prompt
+                }
+            ]
+        },
+
+        "generationConfig": {
+            "temperature": 0.2
+        }
+    }
+
+    # ========================================================
+    # API AANROEP MET HERHALING BIJ TIJDELIJKE FOUTEN
+    # ========================================================
+
+    for poging in range(1, 4):
+
+        try:
+
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=90
+            )
+
+            # TIJDELIJKE GOOGLE API-PROBLEMEN
+
+            if response.status_code in (
+                429, 500, 502, 503, 504
+            ):
+
+                if poging < 3:
+                    time.sleep(2 * poging)
+                    continue
+
+            # ANDERE HTTP-FOUTEN
+
+            response.raise_for_status()
+
+            # JSON RESULTAAT VERWERKEN
+
+            resultaat = response.json()
+
+            kandidaten = resultaat.get(
+                "candidates", []
+            )
+
+            if not kandidaten:
+
+                raise ValueError(
+                    "Gemini heeft geen diagnoseantwoord teruggegeven."
+                )
+
+            inhoud = kandidaten[0].get(
+                "content", {}
+            )
+
+            onderdelen = inhoud.get(
+                "parts", []
+            )
+
+            antwoord = "\n".join(
+                onderdeel.get("text", "")
+                for onderdeel in onderdelen
+                if onderdeel.get("text")
+            )
+
+            if not antwoord:
+
+                raise ValueError(
+                    "Het AI-antwoord bevat geen tekst."
+                )
+
+            return antwoord
+
+        except requests.exceptions.HTTPError:
+
+            if poging == 3:
+                raise
+
+            time.sleep(2 * poging)
+
+        except requests.exceptions.RequestException:
+
+            if poging == 3:
+                raise
+
+            time.sleep(2 * poging)
+
+    raise RuntimeError(
+        "Diagnose kon niet worden gegenereerd."
+    )
+
+
+# ============================================================
+# EINDE DEEL 2
+# PLAK DEEL 3 HIERONDER
+# ============================================================
+
+# ============================================================
+# DEEL 3: WENSINK STREAMLIT INTERFACE
+# ============================================================
+
+# ============================================================
+# HEADER
+# ============================================================
+
+st.markdown(
+    '<div class="main-title">'
+    'Wensink Diagnose Assistent'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="subtitle">'
+    'Mercedes-Benz voertuigidentificatie en technische diagnose'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+st.divider()
+
+
+# ============================================================
+# SECTIE 1: KENTEKEN OPZOEKEN
+# ============================================================
+
+st.subheader("1. Voertuig identificeren")
+
+col1, col2 = st.columns([3, 1])
+
+with col1:
+
+    kenteken_invoer = st.text_input(
+        "Kenteken",
+        placeholder="Bijvoorbeeld GG-123-X"
+    )
+
+with col2:
+
+    st.write("")
+    st.write("")
+
+    ophalen = st.button(
+        "RDW OPHALEN",
+        use_container_width=True
+    )
+
+
+# ============================================================
+# RDW OPHALEN EN SESSION STATE BIJWERKEN
+# ============================================================
+
+if ophalen:
+
+    if not kenteken_invoer.strip():
+
+        st.warning(
+            "Vul eerst een kenteken in."
+        )
+
+    else:
+
+        with st.spinner(
+            "Voertuiggegevens ophalen bij RDW..."
+        ):
+
+            data = haal_rdw_data(
+                kenteken_invoer
+            )
+
+        if data == "GEEN_MERCEDES":
+
+            st.error(
+                "Dit voertuig is geen Mercedes-Benz. "
+                "Deze applicatie is uitsluitend bedoeld "
+                "voor Mercedes-Benz."
+            )
+
+        elif data:
+
+            st.session_state["rdw_model"] = data["model"]
+
+            st.session_state["rdw_jaar"] = data["jaar"]
+
+            st.session_state["rdw_motor"] = data["motor"]
+
+            st.session_state["rdw_handelsbenaming"] = (
+                data["handelsbenaming"]
+            )
+
+            st.session_state["rdw_kenteken"] = (
+                data["kenteken"]
+            )
+
+            st.success(
+                "Mercedes-Benz voertuig succesvol opgehaald!"
+            )
+
+            st.rerun()
+
+        else:
+
+            st.warning(
+                "Geen voertuiggegevens gevonden. "
+                "Controleer het kenteken of vul de gegevens handmatig in."
+            )
+
+
+# ============================================================
+# SECTIE 2: VOERTUIGGEGEVENS TONEN
+# ============================================================
+
+if st.session_state.get("rdw_model"):
+
+    st.markdown(
+        '<div class="vehicle-card">',
+        unsafe_allow_html=True
+    )
+
+    st.success(
+        "Voertuiggegevens beschikbaar"
+    )
+
+    v1, v2, v3 = st.columns(3)
+
+    with v1:
+
+        st.metric(
+            "Model",
+            st.session_state.get(
+                "rdw_model", "-"
+            )
+        )
+
+    with v2:
+
+        st.metric(
+            "Bouwjaar",
+            st.session_state.get(
+                "rdw_jaar", "-"
+            )
+        )
+
+    with v3:
+
+        st.metric(
+            "Brandstof",
+            st.session_state.get(
+                "rdw_motor", "-"
+            )
+        )
+
+    st.caption(
+        "Handelsbenaming: "
+        + st.session_state.get(
+            "rdw_handelsbenaming", "-"
+        )
+    )
+
+    st.caption(
+        "Kenteken: "
+        + st.session_state.get(
+            "rdw_kenteken", "-"
+        )
+    )
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+
+# ============================================================
+# SECTIE 3: DIAGNOSEFORMULIER
+# ============================================================
+
+st.divider()
+
+st.subheader("2. Diagnosegegevens")
 
 with st.form("diagnose_form"):
-    c1, c2 = st.columns(2)
-    with c1:
-        model = st.text_input("Model auto", key="rdw_model", placeholder="Bijv. C-Klasse (W205)")
-        bouwjaar = st.text_input("Bouwjaar", key="rdw_jaar", placeholder="Bijv. 2018")
-    with c2:
-        motorisering = st.text_input("Motor / Brandstof", key="rdw_motor", placeholder="Bijv. 220d / EV")
-        foutcode = st.text_input("Storingscode / DTC (Optioneel)", placeholder="Bijv. P0301 of U0100")
-        
-    klacht = st.text_area("Omschrijving van de klacht / symptomen", placeholder="Bijv. Motor houdt in rond de 2000 toeren...")
-    submit = st.form_submit_button("Genereer Diagnose & Teststappen")
 
-if submit and model and klacht:
-    with st.spinner("Google AI analyseert de klacht..."):
-        sys_p = "Jij bent een gecertificeerde Mercedes-Benz Master Technician bij een officiële merkdealer. Geef op basis van de voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch diagnose-advies. Gebruik de vaste structuur: 1. Meest waarschijnlijke oorzaak (Top 3), 2. Gericht stappenplan & teststappen (Meten is weten!), 3. Bekende kwalen voor dit model, 4. Potentieel te vervangen onderdelen."
-        user_p = "Merk: Mercedes-Benz\nModel: " + str(model) + " (" + str(bouwjaar) + ")\nMotor: " + str(motorisering) + "\nStoringscode: " + str(foutcode if foutcode else "Geen") + "\nKlacht: " + str(klacht)
-        
-        url = "https://googleapis.com" + st.secrets["GOOGLE_API_KEY"]
-        payload = {"contents": [{"parts": [{"text": user_p}]}], "systemInstruction": {"parts": [{"text": sys_p}]}}
-        
-        poging = 1
-        succes = False
-        while poging <= 3 and not succes:
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        model = st.text_input(
+            "Mercedes-Benz model",
+            key="rdw_model",
+            placeholder="Bijvoorbeeld C-Klasse"
+        )
+
+        bouwjaar = st.text_input(
+            "Bouwjaar",
+            key="rdw_jaar",
+            placeholder="Bijvoorbeeld 2018"
+        )
+
+        handelsbenaming = st.text_input(
+            "Handelsbenaming",
+            key="rdw_handelsbenaming",
+            placeholder="Bijvoorbeeld C 220 D"
+        )
+
+    with c2:
+
+        motorisering = st.text_input(
+            "Motor / Brandstof",
+            key="rdw_motor",
+            placeholder="Bijvoorbeeld OM654 / Diesel"
+        )
+
+        kilometerstand = st.text_input(
+            "Kilometerstand",
+            placeholder="Bijvoorbeeld 145000"
+        )
+
+        foutcode = st.text_input(
+            "Storingscode(s) / DTC",
+            placeholder="Bijvoorbeeld P0401 of P2002"
+        )
+
+    klacht = st.text_area(
+        "Omschrijving klacht en symptomen",
+        placeholder=(
+            "Beschrijf de klacht zo uitgebreid mogelijk. "
+            "Bijvoorbeeld: motor houdt in rond 2000 toeren, "
+            "motorlamp brandt en voertuig heeft vermogensverlies."
+        ),
+        height=150
+    )
+
+    extra_info = st.text_area(
+        "Extra informatie (optioneel)",
+        placeholder=(
+            "Bijvoorbeeld: klacht koud/warm, "
+            "eerder uitgevoerde reparaties, meetwaarden..."
+        ),
+        height=90
+    )
+
+    submit = st.form_submit_button(
+        "GENEREER MERCEDES DIAGNOSE",
+        use_container_width=True
+    )
+
+
+# ============================================================
+# SECTIE 4: DIAGNOSE UITVOEREN
+# ============================================================
+
+if submit:
+
+    if not model.strip() or not klacht.strip():
+
+        st.warning(
+            "Vul minimaal het model en de klacht in."
+        )
+
+    else:
+
+        volledige_klacht = klacht
+
+        if extra_info.strip():
+
+            volledige_klacht += (
+                "\n\nExtra informatie:\n"
+                + extra_info
+            )
+
+        with st.spinner(
+            "Gemini analyseert de voertuiggegevens en klacht..."
+        ):
+
             try:
-                res = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
-                if res.status_code == 200:
-                    st.success("Mercedes-Benz Diagnose Advies & Teststappen:")
-                    st.markdown(res.json()["candidates"]["content"]["parts"]["text"])
-                    succes = True
-                else:
-                    time.sleep(2)
-                    poging += 1
-            except:
-                time.sleep(2)
-                poging += 1
-                
-        if not succes:
-            st.error("Het AI-systeem is momenteel overbelast of onbereikbaar. Probeer het over een paar minuten nog eens.")
-elif submit:
-    st.warning("Vul tenminste het model en de klacht van de klant in.")
+
+                diagnose = genereer_diagnose(
+                    model=model,
+                    bouwjaar=bouwjaar,
+                    handelsbenaming=handelsbenaming,
+                    motorisering=motorisering,
+                    kilometerstand=kilometerstand,
+                    foutcode=foutcode,
+                    klacht=volledige_klacht
+                )
+
+                st.session_state[
+                    "laatste_diagnose"
+                ] = diagnose
+
+            except Exception as e:
+
+                st.error(
+                    "Diagnose kon niet worden gegenereerd: "
+                    + str(e)
+                )
+
+
+# ============================================================
+# SECTIE 5: DIAGNOSE RESULTAAT TONEN
+# ============================================================
+
+if st.session_state.get("laatste_diagnose"):
+
+    st.divider()
+
+    st.subheader(
+        "3. Mercedes-Benz Diagnoseadvies"
+    )
+
+    st.markdown(
+        st.session_state["laatste_diagnose"]
+    )
+
+    st.download_button(
+        label="DOWNLOAD DIAGNOSE ALS TEKSTBESTAND",
+        data=st.session_state["laatste_diagnose"],
+        file_name="Wensink_Mercedes_Diagnose.txt",
+        mime="text/plain",
+        use_container_width=True
+    )
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+st.divider()
+
+st.caption(
+    "Wensink Mercedes-Benz Diagnose Assistent | "
+    "RDW Open Data + Google Gemini"
+)
+
+# ============================================================
+# EINDE DEEL 3
+# ============================================================
