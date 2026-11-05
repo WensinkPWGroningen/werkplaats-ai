@@ -12,7 +12,7 @@ def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
     # Gecorrigeerd naar het officiële RDW Open Data subdomein
-    b_domein = "https://opendata.rdw.nl"
+    b_domein = "https://rdw.nl"
     v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
     b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
     
@@ -20,10 +20,10 @@ def haal_rdw_data(kenteken):
         v_res = requests.get(v_url).json()
         if not v_res:
             return None
-        v = v_res[0] if isinstance(v_res, list) else v_res
+        v = v_res if isinstance(v_res, list) else v_res
         
         b_res = requests.get(b_url).json()
-        b_data = b_res[0] if isinstance(b_res, list) else b_res
+        b_data = b_res if isinstance(b_res, list) else b_res
         
         brandstof = b_data.get("brandstof_omschrijving", "Onbekend") if b_data else "Onbekend"
         
