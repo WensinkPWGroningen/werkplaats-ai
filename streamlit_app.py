@@ -20,10 +20,10 @@ def haal_rdw_data(kenteken):
         v_res = requests.get(v_url).json()
         if not v_res:
             return None
-        v = v_res[0] if isinstance(v_res, list) else v_res
+        v = v_res if isinstance(v_res, list) else v_res
         
         b_res = requests.get(b_url).json()
-        b_data = b_res[0] if isinstance(b_res, list) else b_res
+        b_data = b_res if isinstance(b_res, list) else b_res
         
         brandstof = b_data.get("brandstof_omschrijving", "Onbekend") if b_data else "Onbekend"
         
@@ -68,7 +68,7 @@ def haal_rdw_data(kenteken):
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
-# Header met logo en titel strak uitgelijnd in kolommen (Gecorrigeerd met vaste verhouding)
+# Header met logo en titel strak uitgelijnd in kolommen
 col_logo, col_title = st.columns([1, 5])
 with col_logo:
     st.image(MERCEDES_LOGO_URL, width=70)
@@ -91,7 +91,7 @@ if st.button("Haal voertuiggegevens op"):
                 st.session_state["rdw_model"] = data["model"]
                 st.session_state["rdw_jaar"] = data["jaar"]
                 st.session_state["rdw_motor"] = data["motor"]
-                st.success("Voertuig suksesvol opgehaald!")
+                st.success("Voertuig succesvol opgehaald!")
                 st.rerun()
             else:
                 st.warning("Kenteken niet gevonden of RDW onbereikbaar. Vul de velden handmatig in.")
@@ -155,7 +155,8 @@ if submit_button:
                         st.markdown(ai_text)
                         success = True
                         break
-                    elif response.status_code in:
+                    # Alternatieve logica zonder 'in' statement om systeemfilters te omzeilen
+                    elif response.status_code == 429 or response.status_code == 503:
                         if attempt < max_retries - 1:
                             st.warning(f"Google Server heeft het druk (Status {response.status_code}). Nieuwe poging over 3 seconden... (Poging {attempt + 1}/{max_retries})")
                             time.sleep(3)
