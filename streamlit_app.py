@@ -64,7 +64,7 @@ def haal_rdw_data(kenteken):
                     brandstof = "Hybride"
             else:
                 # Geen combinatie? Pak de eerste omschrijving uit de eerste regel
-                first_b = brandstof_lijst if brandstof_lijst else {}
+                first_b = brandstof_lijst[0] if brandstof_lijst else {}
                 brandstof = first_b.get("brandstof_omschrijving", "Onbekend")
 
         # Controleer of het voertuig een Mercedes-Benz is
@@ -110,7 +110,7 @@ def haal_rdw_data(kenteken):
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # Header met logo en titel strak uitgelijnd in kolommen
-col_logo, col_title = st.columns()
+col_logo, col_title = st.columns([1, 5])
 with col_logo:
     st.image(WENSINK_MERCEDES_BASE64, width=90)
 with col_title:
@@ -189,12 +189,13 @@ if submit_button:
             for attempt in range(max_retries):
                 try:
                     response = requests.post(url, headers=headers, json=payload)
+                    
                     if response.status_code == 200:
                         result_json = response.json()
-                        ai_text = result_json["candidates"]["content"]["parts"]["text"]
+                        ai_text = result_json["candidates"][0]["content"]["parts"][0]["text"]
                         st.success("Mercedes-Benz Diagnose Advies & Teststappen:")
                         st.markdown(ai_text)
                         success = True
                         break
-                    else:
-                        if attempt < max_retries - 1:
+                    
+                    # Vereenvoudigde retry-logica zonder riskante syntax-blokken
