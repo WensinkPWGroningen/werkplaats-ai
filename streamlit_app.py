@@ -68,8 +68,8 @@ def haal_rdw_data(kenteken):
 # Veilige koppeling met je Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
-# Header met logo en titel strak uitgelijnd in kolommen
-col_logo, col_title = st.columns()
+# Header met logo en titel strak uitgelijnd in kolommen (Gecorrigeerd met vaste verhouding)
+col_logo, col_title = st.columns([1, 6])
 with col_logo:
     st.image(MERCEDES_LOGO_URL, width=70)
 with col_title:
@@ -155,7 +155,7 @@ if submit_button:
                         st.markdown(ai_text)
                         success = True
                         break
-                    elif response.status_code in [429, 503]:
+                    elif response.status_code in:
                         if attempt < max_retries - 1:
                             st.warning(f"Google Server heeft het druk (Status {response.status_code}). Nieuwe poging over 3 seconden... (Poging {attempt + 1}/{max_retries})")
                             time.sleep(3)
