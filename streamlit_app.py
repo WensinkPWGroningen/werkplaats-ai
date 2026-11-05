@@ -1174,6 +1174,7 @@ if st.session_state.get("laatste_diagnose"):
 # EINDE DEEL 4B
 # ============================================================
 
+
 # ============================================================
 # DEEL 5: NIEUWE DIAGNOSE STARTEN
 # ============================================================
@@ -1182,12 +1183,8 @@ st.divider()
 
 st.subheader("Nieuwe diagnose starten")
 
-st.write(
-    "Kies hieronder of je een ander voertuig wilt "
-    "invoeren of een nieuwe diagnose voor hetzelfde voertuig wilt starten."
-)
-
 col_nieuw, col_zelfde = st.columns(2)
+
 
 # ============================================================
 # KNOP 1: NIEUW VOERTUIG
@@ -1201,7 +1198,7 @@ with col_nieuw:
         type="primary"
     ):
 
-        # VOERTUIGGEGEVENS WISSEN
+        # ALLE VOERTUIGGEGEVENS WISSEN
 
         voertuig_sleutels = [
             "rdw_model",
@@ -1211,14 +1208,16 @@ with col_nieuw:
             "rdw_kenteken"
         ]
 
-        for sleutel in voertuig_sleutels:
+        # ALLE FORMULIERVELDEN WISSEN
 
-            st.session_state.pop(
-                sleutel,
-                None
-            )
+        formulier_sleutels = [
+            "kilometerstand",
+            "foutcode",
+            "klacht",
+            "extra_info"
+        ]
 
-        # OUDE DIAGNOSE EN CHAT WISSEN
+        # DIAGNOSE EN CHAT WISSEN
 
         diagnose_sleutels = [
             "laatste_diagnose",
@@ -1226,16 +1225,20 @@ with col_nieuw:
             "diagnose_chat_input"
         ]
 
-        for sleutel in diagnose_sleutels:
+        # ALLE GEGEVENS VERWIJDEREN
+
+        for sleutel in (
+            voertuig_sleutels
+            + formulier_sleutels
+            + diagnose_sleutels
+        ):
 
             st.session_state.pop(
                 sleutel,
                 None
             )
 
-        st.success(
-            "Alle voertuig- en diagnosegegevens zijn gewist."
-        )
+        # OPNIEUW LADEN
 
         st.rerun()
 
@@ -1251,14 +1254,18 @@ with col_zelfde:
         use_container_width=True
     ):
 
-        # VOERTUIGGEGEVENS BLIJVEN BEWAARD
+        # VOERTUIGGEGEVENS BEWAREN
 
-        # ALLEEN OUDE DIAGNOSEGEGEVENS WISSEN
+        # ALLEEN DIAGNOSEVELDEN WISSEN
 
         diagnose_sleutels = [
             "laatste_diagnose",
             "chat_history",
-            "diagnose_chat_input"
+            "diagnose_chat_input",
+            "kilometerstand",
+            "foutcode",
+            "klacht",
+            "extra_info"
         ]
 
         for sleutel in diagnose_sleutels:
@@ -1268,12 +1275,12 @@ with col_zelfde:
                 None
             )
 
-        st.success(
-            "Nieuwe diagnose gestart. "
-            "De voertuiggegevens zijn behouden."
-        )
-
         st.rerun()
+
+
+# ============================================================
+# EINDE DEEL 5
+# ============================================================
 
 
 # ============================================================
