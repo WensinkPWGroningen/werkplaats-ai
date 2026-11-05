@@ -34,7 +34,7 @@ if submit_button:
         with st.spinner("Google AI analyseert de klacht en formuleert Mercedes-Benz teststappen..."):
             
             system_prompt = (
-                "Jij bent een gecertificeerde Mercedes-Benz Master Technician en diagnose-expert bij een officielle merkdealer. "
+                "Jij bent een gecertificeerde Mercedes-Benz Master Technician en diagnose-expert bij een officiële merkdealer. "
                 "Geef op basis van de Mercedes-Benz voertuiggegevens, eventuele storingscodes (DTC's) en de klacht een technisch, professioneel diagnose-advies. "
                 "Gebruik bij voorkeur specifieke Mercedes-termen (zoals Xentry, Star Diagnosis of WIS-richtlijnen indien van toepassing). "
                 "Gebruik ALTIJD de volgende vaste structuur in je antwoord:\n"
@@ -73,13 +73,13 @@ if submit_button:
                     if response.status_code == 200:
                         result_json = response.json()
                         # Volledig herstelde JSON-parsing met de juiste lijsten-indexering
-                        ai_text = result_json['candidates'][0]['content']['parts'][0]['text']
+                        ai_text = result_json['candidates']['content']['parts']['text']
                         st.success("Mercedes-Benz Diagnose Advies & Teststappen:")
                         st.markdown(ai_text)
                         success = True
                         break  # Stop de loop, want het is gelukt!
                         
-                        elif (response.status_code == 429) or (response.status_code == 503):
+                    elif (response.status_code == 429) or (response.status_code == 503):
                         # Server overbelast of te veel verzoeken: wacht even en probeer opnieuw
                         if attempt < max_retries - 1:
                             st.warning(f"Google Server heeft het druk (Status {response.status_code}). Nieuwe poging over 3 seconden... (Poging {attempt + 1}/{max_retries})")
