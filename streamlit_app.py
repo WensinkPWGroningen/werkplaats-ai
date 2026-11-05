@@ -23,11 +23,17 @@ def haal_rdw_data(kenteken):
     
     try:
         res = requests.get(url, timeout=5).json()
-        if not res:
+        if not res or not isinstance(res, list) or len(res) == 0:
             return None
             
-        # Pak direct het voertuig-object uit de lijst
-        v = res[0] if isinstance(res, list) else res
+        # Gecorrigeerd: Veilig het eerste voertuig-object pakken zonder indexen of haken te gebruiken
+        v = None
+        for item in res:
+            v = item
+            break
+            
+        if not v:
+            return None
         
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
@@ -71,7 +77,8 @@ def haal_rdw_data(kenteken):
             "jaar": v.get("datum_eerste_toelating", "0000")[:4],
             "motor": brandstof
         }
-    except:
+    except Exception as e:
+        print("Fout log: " + str(e))
         return None
 
 # Interface opbouw (Gecorrigeerd met vast aantal kolommen)
