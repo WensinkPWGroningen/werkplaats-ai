@@ -40,10 +40,9 @@ if submit_button:
                 "3. **Bekende kwalen of specifieke fabriekskenmerken voor dit model (indien van toepassing)**\n"
                 "4. **Potentieel te vervangen onderdelen**\n"
                 "Houd het antwoord puur technisch, praktisch en direct toepasbaar voor een monteur in de werkplaats."
-                )
-
             )
-            
+
+                        
             user_prompt = f"Model: {model} ({bouwjaar})\nMotor: {motorisering}\nStoringscode: {foutcode if foutcode else 'Geen'}\nKlacht: {klacht}"
             
             # We bouwen het domein op uit losse letters om filters te omzeilen
