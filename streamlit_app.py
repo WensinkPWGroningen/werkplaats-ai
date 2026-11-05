@@ -71,7 +71,16 @@ st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_i
 
 # Header met het officiële logo gecentreerd/boven de titel
 st.image(MERCEDES_LOGO_URL, width=100)
-st.title("Wensink Mercedes-Benz Diagnose Assistent")
+st.title
+# Pagina-instellingen voor de tablet in de werkplaats
+st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_icon=MERCEDES_LOGO_URL, layout="centered")
+
+# Header met logo en titel strak uitgelijnd
+col_logo, col_title = st.columns([1, 5])
+with col_logo:
+    st.image(MERCEDES_LOGO_URL, width=70)
+with col_title:
+    st.title("Wensink Mercedes-Benz Diagnose Assistent")
 st.write("Voer de voertuiggegevens, foutcode en de klacht in voor een gericht Mercedes-Benz diagnose-advies.")
 
 # Kenteken invoer buiten het diagnoseformulier om direct te kunnen laden
