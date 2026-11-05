@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Gebruik bij voorkeur st.secrets["GOOGLE_API_KEY"] voor veiligheid
-GOOGLE_API_KEY = "AQ.Ab8RN6KwrygsZBMnESnTOax0I9l5_z_Vp-EbE0Q-7sJKX7xPJQ"
+url = f"https://googleapis.com{GOOGLE_API_KEY}"
 
 st.set_page_config(page_title="Werkplaats AI Diagnose Assistent", page_icon="🚗", layout="centered")
 
