@@ -20,29 +20,52 @@ st.set_page_config(page_title="Wensink Mercedes-Benz Diagnose Assistent", page_i
 def haal_rdw_data(kenteken):
     k = kenteken.replace("-", "").replace(" ", "").upper()
     
-    # Het officiële en correcte RDW Open Data subdomein
-    b_domein = "https://opendata.rdw.nl"
+    # Het officiële RDW Open Data subdomein
+    b_domein = "https://rdw.nl"
     v_url = b_domein + "/resource/m9d7-ebf2.json?kenteken=" + k
     b_url = b_domein + "/resource/8ys7-d773.json?kenteken=" + k
     
     try:
-        # Haal basisgegevens op en pak het eerste element [0] uit de JSON-lijst
+        # Haal basisgegevens op
         v_res = requests.get(v_url).json()
         if not v_res:
             return None
-        v = v_res[0] if isinstance(v_res, list) else v_res
+        v = v_res if isinstance(v_res, list) else v_res
         
-        # Haal brandstofgegevens op en pak het eerste element [0] uit de JSON-lijst
+        # Haal alle brandstofregels op (een hybride heeft er vaak 2 of meer in de lijst)
         b_res = requests.get(b_url).json()
-        b_data = b_res[0] if isinstance(b_res, list) else b_res
+        brandstof_lijst = b_res if isinstance(b_res, list) else [b_res]
         
-        brandstof = b_data.get("brandstof_omschrijving", "Onbekend") if b_data else "Onbekend"
+        # Verzamel alle unieke brandstofomschrijvingen van dit kenteken
+        omschrijvingen = []
+        for b in brandstof_lijst:
+            omschrijving = b.get("brandstof_omschrijving", "").hide_upper() if b else ""
+            if omschrijving:
+                omschrijvingen.append(omschrijving)
         
+        # Slimme bepaling van het motortype (Hybride detectie)
+        brandstof = "Onbekend"
+        if len(omschrijvingen) > 0:
+            heeft_elektro = any("ELEKTR" in o for o in omschrijvingen)
+            heeft_benzine = any("BENZINE" in o for o in omschrijvingen)
+            heeft_diesel = any("DIESEL" in o for o in omschrijvingen)
+            
+            if heeft_elektro and (heeft_benzine or heeft_diesel):
+                # Controleer of het een Plug-in Hybride betreft via de handelsbenaming (vaak 'e' of 'PHEV')
+                ruwe_benaming = v.get("handelsbenaming", "").upper()
+                if " PLUG-IN " in ruwe_benaming or ruwe_benaming.endswith("E") or "PHEV" in ruwe_benaming:
+                    brandstof = "Plug-in Hybride"
+                else:
+                    brandstof = "Hybride"
+            else:
+                # Geen combinatie? Pak gewoon de eerste omschrijving (bijv. puur Benzine, Diesel of Elektriciteit)
+                brandstof = b_res.get("brandstof_omschrijving", "Onbekend") if b_res else "Onbekend"
+
         # Controleer of het voertuig een Mercedes-Benz is
         if v.get("merk", "").upper() != "MERCEDES-BENZ":
             return "GEEN_MERCEDES"
             
-        # Slimme opschoning voor Mercedes handelsbenamingen naar overzichtelijke klassen
+        # Slimme opschoning voor Mercedes handelsbenamingen
         ruwe_benaming = v.get("handelsbenaming", "Onbekend").upper()
         schoon_model = ruwe_benaming
         
