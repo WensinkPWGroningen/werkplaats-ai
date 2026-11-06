@@ -1169,28 +1169,62 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         }
     }
 
-        # ========================================================
-    # TEKST EN FOTO'S COMBINEREN
-    # ========================================================
+def genereer_vervolgantwoord(chat_history, vraag):
 
-    inhoud_onderdelen = [
+    api_key = st.secrets.get("GOOGLE_API_KEY", "")
+
+    if not api_key:
+        raise ValueError("Google API-sleutel ontbreekt.")
+
+    systeem_prompt = """
+Je bent de Mercedes-Benz Master Technician van
+de Wensink Diagnose Assistent.
+
+Je voert een doorlopende technische diagnose uit.
+
+BELANGRIJK:
+
+1. Onthoud alle eerdere voertuiggegevens.
+2. Onthoud de oorspronkelijke klacht.
+3. Onthoud alle eerder besproken storingscodes.
+4. Gebruik de oorspronkelijke diagnose als uitgangspunt.
+5. Verwerk nieuwe meetwaarden en testresultaten.
+6. Pas eerdere conclusies aan als nieuwe informatie
+   daar aanleiding toe geeft.
+7. Stel gerichte vervolgvragen wanneer informatie ontbreekt.
+8. Geef praktische vervolgstappen voor de monteur.
+9. Verzin geen technische specificaties of meetwaarden.
+10. Maak onderscheid tussen vermoedens en bewezen defecten.
+11. Verwijs bij modelspecifieke fabrieksgegevens naar XENTRY
+    of officiële Mercedes-Benz documentatie.
+
+Geef antwoord in professioneel Nederlands.
+
+Concentreer je op de nieuwe vraag en de volgende diagnosestap.
+"""
+
+    url = (
+        "https://generativelanguage.googleapis.com/"
+        "v1beta/models/gemini-3.8-flash:generateContent"
+    )
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key
+    }
+
+    # Eerdere diagnosegeschiedenis behouden
+    # en nieuwe vraag toevoegen.
+
+    inhoud = chat_history + [
         {
-            "text": gebruikers_prompt
+            "role": "user",
+            "parts": [{"text": vraag}]
         }
     ]
 
-    foto_onderdelen = verwerk_fotos_voor_gemini(
-        fotos or []
-    )
-
-    inhoud_onderdelen.extend(foto_onderdelen)
-
     payload = {
-        "contents": [
-            {
-                "parts": inhoud_onderdelen
-            }
-        ],
+        "contents": inhoud,
 
         "systemInstruction": {
             "parts": [
@@ -1204,6 +1238,9 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
             "temperature": 0.2
         }
     }
+
+    # Gemini API aanroepen
+
     for poging in range(1, 4):
 
         try:
@@ -1226,6 +1263,7 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
             response.raise_for_status()
 
             resultaat = response.json()
+
             kandidaten = resultaat.get("candidates", [])
 
             if not kandidaten:
@@ -1244,7 +1282,9 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
             )
 
             if not antwoord:
-                raise ValueError("Leeg antwoord van Gemini.")
+                raise ValueError(
+                    "Leeg antwoord van Gemini."
+                )
 
             return antwoord
 
@@ -1266,7 +1306,7 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         "De vervolgdiagnose kon niet worden gegenereerd."
     )
 
-
+    
 # ============================================================
 # DEEL 4B: VERVOLGVRAGEN DIRECT ONDER DIAGNOSE
 # ============================================================
