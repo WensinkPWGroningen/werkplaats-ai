@@ -1481,24 +1481,14 @@ if st.session_state.get("laatste_diagnose"):
         "klacht en diagnose."
     )
 
-    chat_history = st.session_state.get(
-        "chat_history", []
-    )
+    # Zorg dat de geschiedenis altijd een lijst is
+    if "chat_history" not in st.session_state or not st.session_state["chat_history"]:
+        st.session_state["chat_history"] = []
 
     # Eerdere vervolgvragen en antwoorden tonen
-    # De eerste twee berichten bevatten de basisdiagnose.
-
-    for bericht in chat_history[2:]:
-
-        if bericht["role"] == "user":
-
-            with st.chat_message("user"):
-                st.markdown(bericht["parts"][0]["text"])
-
-        elif bericht["role"] == "model":
-
-            with st.chat_message("assistant"):
-                st.markdown(bericht["parts"][0]["text"])
+    for bericht in st.session_state["chat_history"]:
+        with st.chat_message("user" if bericht["role"] == "user" else "assistant"):
+            st.markdown(bericht["parts"][0]["text"])
 
     nieuwe_vraag = st.chat_input(
         "Stel een vervolgvraag over deze Mercedes...",
@@ -1507,32 +1497,32 @@ if st.session_state.get("laatste_diagnose"):
 
     if nieuwe_vraag:
 
+        # Toon direct de vraag van de monteur
         with st.chat_message("user"):
             st.markdown(nieuwe_vraag)
 
         with st.chat_message("assistant"):
-
-            with st.spinner(
-                "Gemini analyseert de vervolggegevens..."
-            ):
+            with st.spinner("Gemini analyseert de vervolggegevens..."):
 
                 try:
-                    # 1. Bouw de volledige geschiedenis op voor de API (inclusief de eerste diagnose)
+                    # 1. Haal API-key en Systeemprompt op (zorg dat deze ook ergens globaal staan of vul ze hier in)
+                    api_key = st.secrets.get("GOOGLE_API_KEY", "")
+                    
+                    # 2. Bouw de API-geschiedenis netjes op uit de bestaande session_state
                     api_contents = []
-                    for bericht in chat_history:
+                    for bericht in st.session_state["chat_history"]:
                         api_contents.append({
                             "role": bericht["role"],
                             "parts": [{"text": bericht["parts"][0]["text"]}]
                         })
                     
-                    # Voeg de allernieuwste vraag van de monteur toe aan het einde van de lijst
+                    # Voeg de allernieuwste vraag toe aan de payload
                     api_contents.append({
                         "role": "user",
-                        "parts": [{"text": nieuwe_vraag}]
+                        "parts": [{"text": nieuwe_vraag.strip()}]
                     })
 
-                    # 2. Stuur het verzoek rechtstreeks naar de Gemini 3.8 Flash API
-                    # (Zorg dat 'api_key' en 'systeem_prompt' bovenin je script bekend zijn)
+                    # 3. Rechtstreekse API-aanroep naar Gemini 2.5 Flash (stabiel voor REST)
                     url = "https://googleapis.com"
                     headers = {
                         "Content-Type": "application/json",
@@ -1541,46 +1531,33 @@ if st.session_state.get("laatste_diagnose"):
                     payload = {
                         "contents": api_contents,
                         "systemInstruction": {
-                            "parts": [{"text": systeem_prompt}]
+                            "parts": [{"text": "Je bent de Mercedes-Benz Master Technician van de Wensink Diagnose Assistent. Geef beknopt en technisch advies."}]
+                        },
+                        "generationConfig": {
+                            "temperature": 0.2
                         }
                     }
 
-                    response = requests.post(url, json=payload, headers=headers, timeout=30)
+                    response = requests.post(url, json=payload, headers=headers, timeout=60)
                     response.raise_for_status()
                     
-                    # 3. Pak het antwoord uit de JSON response
+                    # 4. Verwerk het antwoord
                     resultaat = response.json()
-                    antwoord = resultaat["candidates"][0]["content"]["parts"][0]["text"]
+                    antwoord = resultaat["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-                    # 4. Sla BEIDE nieuwe berichten op in de session_state geschiedenis
+                    # 5. Sla de turn op in de lokale geschiedenis
                     st.session_state["chat_history"].extend([
-                        {
-                            "role": "user",
-                            "parts": [{"text": nieuwe_vraag}]
-                        },
-                        {
-                            "role": "model",
-                            "parts": [{"text": antwoord}]
-                        }
+                        {"role": "user", "parts": [{"text": nieuwe_vraag}]},
+                        {"role": "model", "parts": [{"text": antwoord}]}
                     ])
 
-                    # 5. Toon het antwoord op het scherm en ververs
+                    # Toon het antwoord en ververs de UI
                     st.markdown(antwoord)
                     st.rerun()
 
-
                 except Exception as e:
-
-                    st.error(
-                        "Vervolgdiagnose mislukt: " + str(e)
-                    )
-
-                    st.error("Volledige foutmelding:")
-
-                    st.code(
-                        traceback.format_exc(),
-                        language="python"
-                    )
+                    st.error("Vervolgdiagnose mislukt: " + str(e))
+                    st.code(traceback.format_exc(), language="python")
 
 # ============================================================
 # DEEL 5: NIEUWE DIAGNOSE STARTEN - HELEMAAL ONDERAAN
