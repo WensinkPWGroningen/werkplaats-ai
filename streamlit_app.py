@@ -115,11 +115,6 @@ def reset_zelfde_voertuig():
 # DEEL 1: INSTELLINGEN EN RDW-KOPPELING
 # ============================================================
 
-st.set_page_config(
-    page_title="Wensink Mercedes Diagnose",
-    page_icon="🚘",
-    layout="wide"
-)
 
 # ============================================================
 # WENSINK HUISSTIJL
