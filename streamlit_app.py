@@ -1102,72 +1102,7 @@ if st.session_state.get("laatste_diagnose"):
 # DEEL 4A: GEMINI VERVOLGCHAT
 # ============================================================
 
-def genereer_vervolgantwoord(chat_history, vraag):
 
-    api_key = st.secrets.get("GOOGLE_API_KEY", "")
-
-    if not api_key:
-        raise ValueError("Google API-sleutel ontbreekt.")
-
-    systeem_prompt = """
-Je bent de Mercedes-Benz Master Technician van
-de Wensink Diagnose Assistent.
-
-Je voert een doorlopende technische diagnose uit.
-
-BELANGRIJK:
-
-1. Onthoud alle eerdere voertuiggegevens.
-2. Onthoud de oorspronkelijke klacht.
-3. Onthoud alle eerder besproken storingscodes.
-4. Gebruik de oorspronkelijke diagnose als uitgangspunt.
-5. Verwerk nieuwe meetwaarden en testresultaten.
-6. Pas eerdere conclusies aan als nieuwe informatie
-   daar aanleiding toe geeft.
-7. Stel gerichte vervolgvragen wanneer informatie ontbreekt.
-8. Geef praktische vervolgstappen voor de monteur.
-9. Verzin geen technische specificaties of meetwaarden.
-10. Maak onderscheid tussen vermoedens en bewezen defecten.
-11. Verwijs bij modelspecifieke fabrieksgegevens naar XENTRY
-    of officiële Mercedes-Benz documentatie.
-
-Geef antwoord in professioneel Nederlands.
-
-Concentreer je op de nieuwe vraag en de volgende diagnosestap.
-"""
-
-    url = (
-        "https://generativelanguage.googleapis.com/"
-        "v1beta/models/gemini-3.8-flash:generateContent"
-    )
-
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": api_key
-    }
-
-    inhoud = chat_history + [
-        {
-            "role": "user",
-            "parts": [{"text": vraag}]
-        }
-    ]
-
-    payload = {
-        "contents": inhoud,
-
-        "systemInstruction": {
-            "parts": [
-                {
-                    "text": systeem_prompt
-                }
-            ]
-        },
-
-        "generationConfig": {
-            "temperature": 0.2
-        }
-    }
 
 def genereer_vervolgantwoord(chat_history, vraag):
 
