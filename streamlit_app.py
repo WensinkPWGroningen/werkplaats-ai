@@ -4,6 +4,8 @@ import requests
 import time
 import re
 import base64
+import traceback
+
 
 st.set_page_config(
     page_title="Wensink Mercedes Diagnose",
@@ -1476,6 +1478,12 @@ if st.session_state.get("laatste_diagnose"):
                         "Vervolgdiagnose mislukt: " + str(e)
                     )
 
+                    st.error("Volledige foutmelding:")
+
+                    st.code(
+                        traceback.format_exc(),
+                        language="python"
+                    )
 
 # ============================================================
 # DEEL 5: NIEUWE DIAGNOSE STARTEN - HELEMAAL ONDERAAN
