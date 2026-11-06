@@ -995,30 +995,35 @@ if submit:
                 st.session_state["laatste_diagnose"] = diagnose
 
                 # Nieuwe chatgeschiedenis opbouwen
-                st.session_state["chat_history"] = [
+                                st.session_state["chat_history"] = [
                     {
                         "role": "user",
-                        "parts": [{
-                            "text": (
-                                "Voertuig: Mercedes-Benz "
-                                + model
-                                + "\nBouwjaar: " + bouwjaar
-                                + "\nHandelsbenaming: "
-                                + handelsbenaming
-                                + "\nMotorisering: " + motorisering
-                                + "\nKilometerstand: "
-                                + kilometerstand
-                                + "\nStoringscodes: " + foutcode
-                                + "\nKlacht: " + volledige_klacht
-                            )
-                        }] + verwerk_fotos_voor_gemini(
+                        "parts": [
+                            {
+                                "text": (
+                                    "Voertuig: Mercedes-Benz "
+                                    + model
+                                    + "\nBouwjaar: " + bouwjaar
+                                    + "\nHandelsbenaming: "
+                                    + handelsbenaming
+                                    + "\nMotorisering: " + motorisering
+                                    + "\nKilometerstand: "
+                                    + kilometerstand
+                                    + "\nStoringscodes: " + foutcode
+                                    + "\nKlacht: " + volledige_klacht
+                                )
+                            }
+                        ] + verwerk_fotos_voor_gemini(
                             fotos_voor_gemini
+                        )
                     },
                     {
                         "role": "model",
-                        "parts": [{
-                            "text": diagnose
-                        }]
+                        "parts": [
+                            {
+                                "text": diagnose
+                            }
+                        ]
                     }
                 ]
 
