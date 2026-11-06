@@ -339,5 +339,7 @@ if st.session_state.get("laatste_diagnose"):
                     st.markdown(antwoord_tekst)
                     st.rerun()
                 except Exception as e:
-                    st.error("Vervolgdiagnose mislukt: " + str(e))
+                    # Dit zorgt ervoor dat Streamlit de ECHTE crash en het exacte regelnummer toont!
+                    raise e
+
                     st.code(traceback.format_exc(), language="python")
