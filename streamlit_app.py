@@ -7,6 +7,47 @@ import base64
 
 
 # ============================================================
+# BEVEILIGING WENSINK DIAGNOSE ASSISTENT
+# ============================================================
+
+def controleer_toegang():
+
+    if "ingelogd" not in st.session_state:
+        st.session_state["ingelogd"] = False
+
+    if not st.session_state["ingelogd"]:
+
+        st.markdown(
+            "<h1>🔒 Wensink Diagnose Assistent</h1>",
+            unsafe_allow_html=True
+        )
+
+        st.write("Voer de gezamenlijke toegangscode in.")
+
+        ingevoerde_code = st.text_input(
+            "Toegangscode",
+            type="password",
+            key="toegangscode_invoer"
+        )
+
+        if st.button("INLOGGEN", use_container_width=True):
+
+            juiste_code = st.secrets["password"]["code"]
+
+            if ingevoerde_code == juiste_code:
+
+                st.session_state["ingelogd"] = True
+                st.rerun()
+
+            else:
+                st.error("Onjuiste toegangscode.")
+
+        st.stop()
+
+
+controleer_toegang()
+
+# ============================================================
 # RESETFUNCTIES VOOR NIEUWE DIAGNOSE
 # ============================================================
 
