@@ -375,7 +375,7 @@ def genereer_diagnose(
     motorisering,
     kilometerstand,
     foutcode,
-    klacht
+    klacht,
     fotos=None
 ):
 
