@@ -669,6 +669,21 @@ Geef duidelijk aan welke gegevens nog ontbreken.
     # GEMINI API INSTELLINGEN
     # ========================================================
 
+    # Bouw de gebruikers_prompt op met de ingevoerde diagnosegegevens
+gebruikers_prompt = f"""
+Nieuwe diagnose-aanvraag voor voertuig:
+- Kenteken: {st.session_state.get('rdw_kenteken', 'Onbekend')}
+- Model: {st.session_state.get('rdw_model', 'Onbekend')}
+- Bouwjaar: {st.session_state.get('rdw_jaar', 'Onbekend')}
+- Brandstof/Motor: {st.session_state.get('rdw_motor', 'Onbekend')}
+
+Diagnosegegevens van de monteur:
+- Kilometerstand: {st.session_state.get('kilometerstand', 'Niet opgegeven')}
+- Foutcode(s): {st.session_state.get('foutcode', 'Geen')}
+- Klachtomschrijving: {st.session_state.get('klacht', 'Geen')}
+- Extra informatie: {st.session_state.get('extra_info', 'Geen')}
+"""
+
     url = (
         "https://generativelanguage.googleapis.com/"
         "v1beta/models/gemini-3.8-flash:generateContent"
