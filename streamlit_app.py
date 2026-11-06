@@ -1243,7 +1243,7 @@ wanneer de relevante testresultaten dit bevestigen.
     # 6. GEMINI API INSTELLINGEN
     # --------------------------------------------------------
 
-    modelnaam = "gemini-2.5-flash"
+    modelnaam = "gemini-3.8-flash"
 
     url = (
         "https://generativelanguage.googleapis.com/"
