@@ -241,7 +241,7 @@ if st.session_state.get("rdw_kenteken"):
 
                     systeem_prompt = """Je bent de Mercedes-Benz Master Technician van de Wensink Diagnose Assistent.
 Je voert een diepgaande technische diagnose uit voor Mercedes-Benz voertuigen. 
-Geef concreet, professioneel en uitvoerbaar diagnoseadvies, verwijs naar relevante controles in XENTRY en maak helder onderscheid tussen vermoedens en feiten."""
+Geef concreet, professioneel en uitvoerbaar diagnoseadvies, verwijs naar relevante controles in XENTRY en maak helder onderscheid tussen vermoedens van defecten en bewezen defecten."""
 
                     gebruikers_prompt = f"""
 Nieuwe diagnose-aanvraag voor Mercedes-Benz:
