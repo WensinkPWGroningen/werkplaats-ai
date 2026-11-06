@@ -1105,7 +1105,7 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         "x-goog-api-key": api_key
     }
 
-        inhoud = chat_history + [
+    inhoud = chat_history + [
         {
             "role": "user",
             "parts": [{"text": vraag}]
