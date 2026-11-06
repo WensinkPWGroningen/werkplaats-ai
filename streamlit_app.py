@@ -995,7 +995,7 @@ if submit:
                 st.session_state["laatste_diagnose"] = diagnose
 
                 # Nieuwe chatgeschiedenis opbouwen
-                                st.session_state["chat_history"] = [
+                st.session_state["chat_history"] = [
                     {
                         "role": "user",
                         "parts": [
