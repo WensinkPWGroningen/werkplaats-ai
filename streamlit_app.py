@@ -1011,7 +1011,8 @@ if submit:
                                 + "\nStoringscodes: " + foutcode
                                 + "\nKlacht: " + volledige_klacht
                             )
-                        }]
+                        }] + verwerk_fotos_voor_gemini(
+                            fotos_voor_gemini
                     },
                     {
                         "role": "model",
