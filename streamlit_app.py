@@ -366,10 +366,85 @@ def haal_rdw_data(kenteken):
         st.error("RDW verbindingsfout: " + str(e))
         return None
 
+    # NIEUWE CODE (Plaatsen aan het absolute einde van je bestand)
     except Exception as e:
-
-        st.error("Onverwachte RDW-fout: " + str(e))
+        st.error(f"Onverwachte RDW-fout: {str(e)}")
         return None
+
+# ============================================================
+# CHAT INITIALISATIE EN GEMINI 3.8 KOPPELING
+# ============================================================
+from google import genai
+from google.genai import types
+
+# Zorg ervoor dat de chat_history ALTIJD bestaat als lijst bij het opstarten
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+
+st.write("### 💬 Vervolgchat Diagnose")
+
+# Toon de eerdere berichten uit de geschiedenis in de Streamlit UI
+for bericht in st.session_state["chat_history"]:
+    with st.chat_message(bericht["role"]):
+        st.markdown(bericht["content"])
+
+# Vang nieuwe invoer op via de chatbalk
+if prompt := st.chat_input("Stel een vervolgvraag over deze diagnose...", key="diagnose_chat_input"):
+    
+    # Toon de vraag direct aan de monteur
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    # Sla de vraag direct op in de geschiedenis
+    st.session_state["chat_history"].append({"role": "user", "content": prompt})
+    
+    # Toon een laad-indicator voor de assistent
+    with st.chat_message("assistant"):
+        placeholder = st.empty()
+        placeholder.markdown("*Wensink Assistent is aan het nadenken...*")
+        
+        try:
+            # Initialiseer de officiële GenAI Client (haalt je API-key uit st.secrets of environment)
+            client = genai.Client()
+            
+            # Bouw de eerdere interacties op volgens de Gemini 3 turn-validation regels
+            eerdere_berichten = []
+            for h in st.session_state["chat_history"][:-1]:  # Sla de allerlaatste prompt over, die sturen we los mee
+                eerdere_berichten.append(
+                    types.Content(
+                        role="user" if h["role"] == "user" else "model",
+                        parts=[types.Part.from_text(text=h["content"])]
+                    )
+                )
+            
+            # Configureer Gemini 3.8 Flash specifieke parameters
+            config = types.GenerateContentConfig(
+                thinking_level="medium", # Schakelt de geavanceerde redeneer-stappen in
+                system_instruction="Je bent een deskundige diagnose-assistent voor Wensink Mercedes-Benz. Geef beknopt en technisch advies."
+            )
+            
+            # Start de chat-sessie met de volledige interaction geschiedenis
+            chat = client.chats.create(
+                model="gemini-3.8-flash",
+                history=eerdere_berichten,
+                config=config
+            )
+            
+            # Verstuur de nieuwe vraag en vang het antwoord op
+            response = chat.send_message(prompt)
+            antwoord = response.text
+            
+            # Toon het definitieve antwoord in de app
+            placeholder.markdown(antwoord)
+            
+            # Sla het antwoord op in de geschiedenis
+            st.session_state["chat_history"].append({"role": "assistant", "content": antwoord})
+            
+        except Exception as api_error:
+            placeholder.error(f"Gemini 3.8 Flash API Fout: {str(api_error)}")
+            
+    # Herlaad de pagina zodat Streamlit alle berichten direct up-to-date rendert
+    st.rerun()
 
 
 # ============================================================
