@@ -627,6 +627,9 @@ testresultaten het defect bevestigen.
     # GEBRUIKERSPROMPT
     # ========================================================
 
+systeem_prompt = "Je bent een deskundige diagnose-assistent voor Wensink Mercedes-Benz. Geef beknopt, professioneel en technisch advies op basis van de voertuiggegevens en klachten."
+
+    
     gebruikers_prompt = f"""
 # MERCEDES-BENZ VOERTUIGGEGEVENS
 
