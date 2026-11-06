@@ -992,16 +992,16 @@ if submit:
 
             try:
 
-            diagnose = genereer_diagnose(
-                model=model,
-                bouwjaar=bouwjaar,
-                handelsbenaming=handelsbenaming,
-                motorisering=motorisering,
-                kilometerstand=kilometerstand,
-                foutcode=foutcode,
-                klacht=volledige_klacht,
-                fotos=fotos_voor_gemini
-            )
+                diagnose = genereer_diagnose(
+                    model=model,
+                    bouwjaar=bouwjaar,
+                    handelsbenaming=handelsbenaming,
+                    motorisering=motorisering,
+                    kilometerstand=kilometerstand,
+                    foutcode=foutcode,
+                    klacht=volledige_klacht,
+                    fotos=fotos_voor_gemini
+                )
 
                 st.session_state["laatste_diagnose"] = diagnose
 
