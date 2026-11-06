@@ -1102,29 +1102,56 @@ if st.session_state.get("laatste_diagnose"):
 # DEEL 4A: GEMINI VERVOLGCHAT
 # ============================================================
 
-
-
 def genereer_vervolgantwoord(chat_history, vraag):
 
-    api_key = st.secrets.get("GOOGLE_API_KEY", "")
+    # --------------------------------------------------------
+    # 1. CONTROLEER INVOER
+    # --------------------------------------------------------
+
+    if not vraag or not vraag.strip():
+        raise ValueError(
+            "Je hebt geen vervolgvraag ingevoerd."
+        )
+
+    if not isinstance(chat_history, list) or not chat_history:
+        raise ValueError(
+            "Er is geen diagnosegeschiedenis beschikbaar. "
+            "Genereer eerst een diagnose."
+        )
+
+    # --------------------------------------------------------
+    # 2. GOOGLE API-SLEUTEL
+    # --------------------------------------------------------
+
+    api_key = st.secrets.get(
+        "GOOGLE_API_KEY",
+        ""
+    )
 
     if not api_key:
-        raise ValueError("Google API-sleutel ontbreekt.")
+        raise ValueError(
+            "GOOGLE_API_KEY ontbreekt in Streamlit secrets."
+        )
+
+    # --------------------------------------------------------
+    # 3. SYSTEEMPROMPT
+    # --------------------------------------------------------
 
     systeem_prompt = """
 Je bent de Mercedes-Benz Master Technician van
 de Wensink Diagnose Assistent.
 
-Je voert een doorlopende technische diagnose uit.
+Je voert een doorlopende technische diagnose uit
+voor Mercedes-Benz voertuigen.
 
 BELANGRIJK:
 
-1. Onthoud alle eerdere voertuiggegevens.
-2. Onthoud de oorspronkelijke klacht.
+1. Gebruik alle eerdere voertuiggegevens.
+2. Houd rekening met de oorspronkelijke klacht.
 3. Onthoud alle eerder besproken storingscodes.
 4. Gebruik de oorspronkelijke diagnose als uitgangspunt.
 5. Verwerk nieuwe meetwaarden en testresultaten.
-6. Pas eerdere conclusies aan als nieuwe informatie
+6. Pas eerdere conclusies aan wanneer nieuwe informatie
    daar aanleiding toe geeft.
 7. Stel gerichte vervolgvragen wanneer informatie ontbreekt.
 8. Geef praktische vervolgstappen voor de monteur.
@@ -1132,31 +1159,103 @@ BELANGRIJK:
 10. Maak onderscheid tussen vermoedens en bewezen defecten.
 11. Verwijs bij modelspecifieke fabrieksgegevens naar XENTRY
     of officiële Mercedes-Benz documentatie.
+12. Geef veiligheidswaarschuwingen wanneer dat noodzakelijk is.
 
-Geef antwoord in professioneel Nederlands.
+ANTWOORDSTIJL:
 
-Concentreer je op de nieuwe vraag en de volgende diagnosestap.
+- Schrijf professioneel technisch Nederlands.
+- Geef concrete en uitvoerbare diagnoseadviezen.
+- Leg uit waarom een controle nodig is.
+- Geef aan wat een meetresultaat betekent.
+- Herhaal niet onnodig de volledige oorspronkelijke diagnose.
+- Concentreer je op de nieuwe vraag en de volgende diagnosestap.
+
+Een onderdeel mag pas als defect worden beschouwd
+wanneer de relevante testresultaten dit bevestigen.
 """
+
+    # --------------------------------------------------------
+    # 4. CHATGESCHIEDENIS CONTROLEREN EN OPBOUWEN
+    # --------------------------------------------------------
+
+    inhoud = []
+
+    for bericht in chat_history:
+
+        if not isinstance(bericht, dict):
+            continue
+
+        rol = bericht.get("role")
+
+        onderdelen = bericht.get("parts", [])
+
+        if rol not in ("user", "model"):
+            continue
+
+        if not isinstance(onderdelen, list):
+            continue
+
+        geldige_onderdelen = []
+
+        for onderdeel in onderdelen:
+
+            if not isinstance(onderdeel, dict):
+                continue
+
+            # Tekstberichten behouden
+            if onderdeel.get("text"):
+                geldige_onderdelen.append({
+                    "text": onderdeel["text"]
+                })
+
+            # Foto's behouden als ze aanwezig zijn
+            elif onderdeel.get("inline_data"):
+                geldige_onderdelen.append({
+                    "inline_data": onderdeel["inline_data"]
+                })
+
+        if geldige_onderdelen:
+
+            inhoud.append({
+                "role": rol,
+                "parts": geldige_onderdelen
+            })
+
+    if not inhoud:
+        raise ValueError(
+            "De diagnosegeschiedenis bevat geen bruikbare berichten."
+        )
+
+    # --------------------------------------------------------
+    # 5. NIEUWE VRAAG TOEVOEGEN
+    # --------------------------------------------------------
+
+    inhoud.append({
+        "role": "user",
+        "parts": [
+            {
+                "text": vraag.strip()
+            }
+        ]
+    })
+
+    # --------------------------------------------------------
+    # 6. GEMINI API INSTELLINGEN
+    # --------------------------------------------------------
+
+    modelnaam = "gemini-2.5-flash"
 
     url = (
         "https://generativelanguage.googleapis.com/"
-        "v1beta/models/gemini-3.8-flash:generateContent"
+        "v1beta/models/"
+        + modelnaam
+        + ":generateContent"
     )
 
     headers = {
         "Content-Type": "application/json",
         "x-goog-api-key": api_key
     }
-
-    # Eerdere diagnosegeschiedenis behouden
-    # en nieuwe vraag toevoegen.
-
-    inhoud = chat_history + [
-        {
-            "role": "user",
-            "parts": [{"text": vraag}]
-        }
-    ]
 
     payload = {
         "contents": inhoud,
@@ -1174,7 +1273,9 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         }
     }
 
-    # Gemini API aanroepen
+    # --------------------------------------------------------
+    # 7. GEMINI API AANROEP
+    # --------------------------------------------------------
 
     for poging in range(1, 4):
 
@@ -1187,6 +1288,7 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
                 timeout=90
             )
 
+            # Tijdelijke Google API-problemen
             if response.status_code in (
                 429, 500, 502, 503, 504
             ):
@@ -1195,45 +1297,101 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
                     time.sleep(2 * poging)
                     continue
 
-            response.raise_for_status()
+            # Controleer HTTP-status
+            if not response.ok:
+
+                try:
+                    foutgegevens = response.json()
+
+                    foutmelding = (
+                        foutgegevens
+                        .get("error", {})
+                        .get("message", response.text)
+                    )
+
+                except ValueError:
+                    foutmelding = response.text
+
+                raise RuntimeError(
+                    "Google Gemini API-fout "
+                    + str(response.status_code)
+                    + ": "
+                    + str(foutmelding)
+                )
+
+            # ------------------------------------------------
+            # 8. ANTWOORD VERWERKEN
+            # ------------------------------------------------
 
             resultaat = response.json()
 
-            kandidaten = resultaat.get("candidates", [])
+            kandidaten = resultaat.get(
+                "candidates",
+                []
+            )
 
             if not kandidaten:
+
                 raise ValueError(
                     "Gemini heeft geen antwoord teruggegeven."
                 )
 
-            onderdelen = kandidaten[0].get(
-                "content", {}
-            ).get("parts", [])
+            kandidaat = kandidaten[0]
+
+            inhoud_antwoord = kandidaat.get(
+                "content",
+                {}
+            )
+
+            onderdelen_antwoord = inhoud_antwoord.get(
+                "parts",
+                []
+            )
 
             antwoord = "\n".join(
                 onderdeel.get("text", "")
-                for onderdeel in onderdelen
+                for onderdeel in onderdelen_antwoord
                 if onderdeel.get("text")
-            )
+            ).strip()
 
             if not antwoord:
+
+                reden = kandidaat.get(
+                    "finishReason",
+                    "Onbekend"
+                )
+
                 raise ValueError(
-                    "Leeg antwoord van Gemini."
+                    "Gemini heeft geen tekstantwoord gegeven. "
+                    "Reden: " + str(reden)
                 )
 
             return antwoord
 
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.Timeout:
 
             if poging == 3:
-                raise
+                raise RuntimeError(
+                    "Google Gemini reageerde niet binnen 90 seconden."
+                )
 
             time.sleep(2 * poging)
 
-        except requests.exceptions.RequestException:
+        except requests.exceptions.ConnectionError:
 
             if poging == 3:
-                raise
+                raise RuntimeError(
+                    "Er kon geen verbinding worden gemaakt met Google Gemini."
+                )
+
+            time.sleep(2 * poging)
+
+        except requests.exceptions.RequestException as e:
+
+            if poging == 3:
+                raise RuntimeError(
+                    "Verbindingsfout bij Gemini: " + str(e)
+                )
 
             time.sleep(2 * poging)
 
@@ -1241,7 +1399,7 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         "De vervolgdiagnose kon niet worden gegenereerd."
     )
 
-    
+
 # ============================================================
 # DEEL 4B: VERVOLGVRAGEN DIRECT ONDER DIAGNOSE
 # ============================================================
