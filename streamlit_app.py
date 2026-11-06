@@ -1099,12 +1099,28 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         "x-goog-api-key": api_key
     }
 
-    inhoud = chat_history + [
+        inhoud = chat_history + [
         {
             "role": "user",
             "parts": [{"text": vraag}]
         }
     ]
+
+    payload = {
+        "contents": inhoud,
+
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": systeem_prompt
+                }
+            ]
+        },
+
+        "generationConfig": {
+            "temperature": 0.2
+        }
+    }
 
         # ========================================================
     # TEKST EN FOTO'S COMBINEREN
