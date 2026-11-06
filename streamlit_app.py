@@ -952,9 +952,7 @@ with st.form("diagnose_form"):
     submit = st.form_submit_button(
         "GENEREER MERCEDES DIAGNOSE",
         use_container_width=True
-    )
-        "GENEREER MERCEDES DIAGNOSE",
-        use_container_width=True
+    
     )
 
 
@@ -1125,7 +1123,6 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
     inhoud_onderdelen.extend(foto_onderdelen)
 
     payload = {
-
         "contents": [
             {
                 "parts": inhoud_onderdelen
