@@ -195,6 +195,7 @@ def haal_rdw_data(kenteken):
     except Exception as e:
         st.error(f"Onverwachte RDW-fout: {str(e)}")
         return None
+
 # ============================================================
 # DEEL 4A: GEMINI VERVOLGCHAT LOGICA
 # ============================================================
@@ -236,9 +237,14 @@ ANTWOORDSTIJL:
             onderdelen = bericht.get("parts", [])
             geldige_onderdelen = []
             
-            for onderdeel in onderdelen:
-                if isinstance(onderdeel, dict) and onderdeel.get("text"):
-                    geldige_onderdelen.append({"text": onderdeel["text"]})
+            # Controleer of parts een lijst is (zoals het hoort)
+            if isinstance(onderdelen, list):
+                for onderdeel in onderdelen:
+                    if isinstance(onderdeel, dict) and onderdeel.get("text"):
+                        geldige_onderdelen.append({"text": onderdeel["text"]})
+            # Als parts per ongeluk een dict is, vang het hier veilig op
+            elif isinstance(onderdelen, dict) and onderdelen.get("text"):
+                geldige_onderdelen.append({"text": onderdelen["text"]})
             
             if geldige_onderdelen:
                 inhoud.append({"role": rol, "parts": geldige_onderdelen})
@@ -269,7 +275,8 @@ ANTWOORDSTIJL:
             kandidaten = resultaat.get("candidates", [])
             if kandidaten:
                 kandidaat = kandidaten[0]
-                onderdelen_antwoord = kandidaat.get("content", {}).get("parts", [])
+                inhoud_antwoord = kandidaat.get("content", {})
+                onderdelen_antwoord = inhoud_antwoord.get("parts", [])
                 antwoord = "\n".join(o.get("text", "") for o in onderdelen_antwoord if o.get("text")).strip()
                 if antwoord:
                     return antwoord
@@ -288,8 +295,8 @@ ANTWOORDSTIJL:
 
 st.markdown("<h1 class='main-title'>🚘 Wensink Mercedes-Benz Werkplaats Assistent</h1>", unsafe_allow_html=True)
 
-# Test-omgeving simulatie: hiermee zorgen we dat de chat UI direct zichtbaar is
-if not st.session_state["laatste_diagnose"]:
+# Test-omgeving simulatie met de VOLLEDIG CORRECTE lijst-structuur voor de parts
+if not st.session_state["laatste_diagnose"] or not st.session_state["chat_history"]:
     st.session_state["laatste_diagnose"] = "Basisdiagnose gegenereerd."
     st.session_state["rdw_kenteken"] = "KXP17K"
     st.session_state["chat_history"] = [
@@ -300,13 +307,18 @@ if not st.session_state["laatste_diagnose"]:
 if st.session_state.get("laatste_diagnose"):
     st.divider()
     st.subheader("Verdieping en vervolgvragen")
-    st.write("Stel aanvullende vragen over deze diagnose. Gemini onthoudt de eerdere voertuiggegevens.")
+    st.write("Stel aanvullende vragen over deze diagnose. Gemini onthoudt de eerdere voertuiggegevens, klacht en diagnose.")
 
     # Toon geschiedenis vanaf de vervolgturns (index 2+)
     for bericht in st.session_state["chat_history"][2:]:
         rol_naam = "user" if bericht["role"] == "user" else "assistant"
         with st.chat_message(rol_naam):
-            st.markdown(bericht["parts"][0]["text"])
+            # GEFIXT: Haal de tekst veilig op uit de lijst-structuur [0]["text"]
+            onderdelen = bericht.get("parts", [])
+            if isinstance(onderdelen, list) and len(onderdelen) > 0:
+                st.markdown(onderdelen[0].get("text", ""))
+            elif isinstance(onderdelen, dict):
+                st.markdown(onderdelen.get("text", ""))
 
     nieuwe_vraag = st.chat_input("Stel een vervolgvraag over deze Mercedes...", key="diagnose_chat_input")
 
@@ -319,6 +331,7 @@ if st.session_state.get("laatste_diagnose"):
                 try:
                     antwoord_tekst = genereer_vervolgantwoord(st.session_state["chat_history"], nieuwe_vraag)
                     
+                    # Sla beide nieuwe berichten correct op als lijst in parts
                     st.session_state["chat_history"].extend([
                         {"role": "user", "parts": [{"text": nieuwe_vraag}]},
                         {"role": "model", "parts": [{"text": antwoord_tekst}]}
