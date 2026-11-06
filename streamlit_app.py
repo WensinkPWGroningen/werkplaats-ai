@@ -1197,6 +1197,10 @@ if st.session_state.get("laatste_diagnose"):
 # DEEL 4A: GEMINI VERVOLGCHAT
 # ============================================================
 
+# ============================================================
+# DEEL 4A: GEMINI VERVOLGCHAT
+# ============================================================
+
 def genereer_vervolgantwoord(chat_history, vraag):
 
     # --------------------------------------------------------
@@ -1263,7 +1267,7 @@ ANTWOORDSTIJL:
 - Leg uit waarom een controle nodig is.
 - Geef aan wat een meetresultaat betekent.
 - Herhaal niet onnodig de volledige oorspronkelijke diagnose.
-- Concentreer je op de nieuwe vraag en de volgende diagnosestap.
+- Concentreer je op de nieuwe vraag en the volgende diagnosestap.
 
 Een onderdeel mag pas als defect worden beschouwd
 wanneer de relevante testresultaten dit bevestigen.
@@ -1281,7 +1285,6 @@ wanneer de relevante testresultaten dit bevestigen.
             continue
 
         rol = bericht.get("role")
-
         onderdelen = bericht.get("parts", [])
 
         if rol not in ("user", "model"):
@@ -1310,7 +1313,6 @@ wanneer de relevante testresultaten dit bevestigen.
                 })
 
         if geldige_onderdelen:
-
             inhoud.append({
                 "role": rol,
                 "parts": geldige_onderdelen
@@ -1338,7 +1340,8 @@ wanneer de relevante testresultaten dit bevestigen.
     # 6. GEMINI API INSTELLINGEN
     # --------------------------------------------------------
 
-    modelnaam = "gemini-3.8-flash"
+    # Aangepast naar het ondersteunde model voor pure REST generateContent URL's
+    modelnaam = "gemini-2.5-flash"
 
     url = (
         "https://generativelanguage.googleapis.com/"
@@ -1375,7 +1378,6 @@ wanneer de relevante testresultaten dit bevestigen.
     for poging in range(1, 4):
 
         try:
-
             response = requests.post(
                 url,
                 json=payload,
@@ -1384,26 +1386,20 @@ wanneer de relevante testresultaten dit bevestigen.
             )
 
             # Tijdelijke Google API-problemen
-            if response.status_code in (
-                429, 500, 502, 503, 504
-            ):
-
+            if response.status_code in (429, 500, 502, 503, 504):
                 if poging < 3:
                     time.sleep(2 * poging)
                     continue
 
             # Controleer HTTP-status
             if not response.ok:
-
                 try:
                     foutgegevens = response.json()
-
                     foutmelding = (
                         foutgegevens
                         .get("error", {})
                         .get("message", response.text)
                     )
-
                 except ValueError:
                     foutmelding = response.text
 
@@ -1419,29 +1415,16 @@ wanneer de relevante testresultaten dit bevestigen.
             # ------------------------------------------------
 
             resultaat = response.json()
-
-            kandidaten = resultaat.get(
-                "candidates",
-                []
-            )
+            kandidaten = resultaat.get("candidates", [])
 
             if not kandidaten:
-
                 raise ValueError(
                     "Gemini heeft geen antwoord teruggegeven."
                 )
 
             kandidaat = kandidaten[0]
-
-            inhoud_antwoord = kandidaat.get(
-                "content",
-                {}
-            )
-
-            onderdelen_antwoord = inhoud_antwoord.get(
-                "parts",
-                []
-            )
+            inhoud_antwoord = kandidaat.get("content", {})
+            onderdelen_antwoord = inhoud_antwoord.get("parts", [])
 
             antwoord = "\n".join(
                 onderdeel.get("text", "")
@@ -1450,48 +1433,36 @@ wanneer de relevante testresultaten dit bevestigen.
             ).strip()
 
             if not antwoord:
-
-                reden = kandidaat.get(
-                    "finishReason",
-                    "Onbekend"
-                )
-
+                reden = kandidaat.get("finishReason", "Onbekend")
                 raise ValueError(
-                    "Gemini heeft geen tekstantwoord gegeven. "
-                    "Reden: " + str(reden)
+                    "Gemini heeft geen tekstantwoord gegeven. Reden: " + str(reden)
                 )
 
             return antwoord
 
         except requests.exceptions.Timeout:
-
             if poging == 3:
                 raise RuntimeError(
                     "Google Gemini reageerde niet binnen 90 seconden."
                 )
-
             time.sleep(2 * poging)
 
         except requests.exceptions.ConnectionError:
-
             if poging == 3:
                 raise RuntimeError(
                     "Er kon geen verbinding worden gemaakt met Google Gemini."
                 )
-
             time.sleep(2 * poging)
 
         except requests.exceptions.RequestException as e:
-
             if poging == 3:
                 raise RuntimeError(
                     "Verbindingsfout bij Gemini: " + str(e)
                 )
-
             time.sleep(2 * poging)
 
     raise RuntimeError(
-        "De vervolgdiagnose kon niet worden gegenereerd."
+        "De vervolgdiagnose kon niet worden gegenereerd na 3 pogingen."
     )
 
 
