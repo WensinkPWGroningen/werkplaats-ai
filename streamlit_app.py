@@ -295,14 +295,6 @@ ANTWOORDSTIJL:
 
 st.markdown("<h1 class='main-title'>🚘 Wensink Mercedes-Benz Werkplaats Assistent</h1>", unsafe_allow_html=True)
 
-# Test-omgeving simulatie met de VOLLEDIG CORRECTE lijst-structuur voor de parts
-if not st.session_state["laatste_diagnose"] or not st.session_state["chat_history"]:
-    st.session_state["laatste_diagnose"] = "Basisdiagnose gegenereerd."
-    st.session_state["rdw_kenteken"] = "KXP17K"
-    st.session_state["chat_history"] = [
-        {"role": "user", "parts": [{"text": "Diagnose opstarten"}]},
-        {"role": "model", "parts": [{"text": "Systeem startklaar. Welke klacht wilt u onderzoeken?"}]}
-    ]
 
 if st.session_state.get("laatste_diagnose"):
     st.divider()
