@@ -295,6 +295,75 @@ ANTWOORDSTIJL:
 
 st.markdown("<h1 class='main-title'>🚘 Wensink Mercedes-Benz Werkplaats Assistent</h1>", unsafe_allow_html=True)
 
+# NIEUWE CODE (Plaats dit terug op de plek van het test-blokje):
+
+st.write("Voer de voertuig- en diagnosegegevens in om de Master Technician analyse te starten.")
+
+# Kenteken invoer en RDW ophalen
+kenteken_invoer = st.text_input("Kenteken", key="kenteken_invoer")
+if kenteken_invoer:
+    with st.spinner("Voertuiggegevens ophalen bij de RDW..."):
+        voertuig_data = haal_rdw_data(kenteken_invoer)
+        if voertuig_data and voertuig_data != "GEEN_MERCEDES":
+            st.session_state["rdw_kenteken"] = voertuig_data["kenteken"]
+            st.session_state["rdw_model"] = voertuig_data["model"]
+            st.session_state["rdw_jaar"] = voertuig_data["jaar"]
+            st.session_state["rdw_motor"] = voertuig_data["motor"]
+            
+            # Toon een mooie kaart met autogegevens
+            st.markdown(f"""
+            <div class='vehicle-card'>
+                <strong>🚗 Gevonden Mercedes-Benz:</strong><br>
+                Model: {voertuig_data['model']} | Bouwjaar: {voertuig_data['jaar']} | Brandstof: {voertuig_data['motor']}
+            </div>
+            """, unsafe_allow_html=True)
+        elif voertuig_data == "GEEN_MERCEDES":
+            st.error("Dit voertuig is geen Mercedes-Benz. De assistent ondersteunt alleen Mercedes-Benz.")
+
+# Werkplaats variabelen invullen
+col1, col2 = st.columns(2)
+with col1:
+    st.number_input("Kilometerstand", min_value=0, step=1, key="kilometerstand")
+    st.text_input("Storingscode(s) (bijv. P0101)", key="foutcode")
+with col2:
+    st.text_area("Klachtomschrijving van de klant", key="klacht")
+    st.text_area("Extra informatie / Meetwaarden", key="extra_info")
+
+# De hoofdknop om de eerste diagnose te starten
+if st.session_state.get("rdw_kenteken"):
+    if st.button("GENEREER DIAGNOSE", use_container_width=True):
+        with st.spinner("Wensink Assistent genereert de Master Technician diagnose..."):
+            try:
+                # Bouw de eerste prompt
+                gebruikers_prompt = f"""
+Nieuwe diagnose-aanvraag voor: {st.session_state['rdw_model']} ({st.session_state['rdw_jaar']})
+Kenteken: {st.session_state['rdw_kenteken']} | Motor: {st.session_state['rdw_motor']}
+KM-stand: {st.session_state.get('kilometerstand')}
+Foutcode: {st.session_state.get('foutcode')}
+Klacht: {st.session_state.get('klacht')}
+Extra info: {st.session_state.get('extra_info')}
+"""
+                # Stuur naar Gemini (met de veilige 2.5-flash fallback)
+                url = "https://googleapis.com"
+                headers = {"Content-Type": "application/json", "x-goog-api-key": st.secrets["GOOGLE_API_KEY"]}
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": gebruikers_prompt}]}],
+                    "generationConfig": {"temperature": 0.2}
+                }
+                
+                response = requests.post(url, json=payload, headers=headers, timeout=60)
+                response.raise_for_status()
+                eerste_antwoord = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+                
+                # Sla op in de geschiedenis om de vervolgchat te voeden
+                st.session_state["laatste_diagnose"] = eerste_antwoord
+                st.session_state["chat_history"] = [
+                    {"role": "user", "parts": [{"text": gebruikers_prompt}]},
+                    {"role": "model", "parts": [{"text": eerste_antwoord}]}
+                ]
+                st.rerun()
+            except Exception as e:
+                st.error(f"Fout bij genereren diagnose: {str(e)}")
 
 if st.session_state.get("laatste_diagnose"):
     st.divider()
