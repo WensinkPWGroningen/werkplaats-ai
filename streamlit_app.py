@@ -818,12 +818,12 @@ if st.session_state.get("rdw_model"):
     )
 
 
+
 # ============================================================
 # SECTIE 3: DIAGNOSEFORMULIER
 # ============================================================
 
 st.divider()
-
 st.subheader("Diagnosegegevens")
 
 with st.form("diagnose_form"):
@@ -831,7 +831,6 @@ with st.form("diagnose_form"):
     c1, c2 = st.columns(2)
 
     with c1:
-
         model = st.text_input(
             "Mercedes-Benz model",
             key="rdw_model",
@@ -851,7 +850,6 @@ with st.form("diagnose_form"):
         )
 
     with c2:
-
         motorisering = st.text_input(
             "Motor / Brandstof",
             key="rdw_motor",
@@ -870,20 +868,13 @@ with st.form("diagnose_form"):
 
     klacht = st.text_area(
         "Omschrijving klacht en symptomen",
-        placeholder=(
-            "Beschrijf de klacht zo uitgebreid mogelijk. "
-            "Bijvoorbeeld: motor houdt in rond 2000 toeren, "
-            "motorlamp brandt en voertuig heeft vermogensverlies."
-        ),
+        placeholder="Beschrijf de klacht zo uitgebreid mogelijk.",
         height=150
     )
 
     extra_info = st.text_area(
         "Extra informatie (optioneel)",
-        placeholder=(
-            "Bijvoorbeeld: klacht koud/warm, "
-            "eerder uitgevoerde reparaties, meetwaarden..."
-        ),
+        placeholder="Meetwaarden, eerdere reparaties enzovoort.",
         height=90
     )
 
@@ -901,23 +892,19 @@ if submit:
 
     if not model.strip() or not klacht.strip():
 
-        st.warning(
-            "Vul minimaal het model en de klacht in."
-        )
+        st.warning("Vul minimaal het model en de klacht in.")
 
     else:
 
         volledige_klacht = klacht
 
         if extra_info.strip():
-
             volledige_klacht += (
-                "\n\nExtra informatie:\n"
-                + extra_info
+                "\n\nExtra informatie:\n" + extra_info
             )
 
         with st.spinner(
-            "Gemini analyseert de voertuiggegevens en klacht..."
+            "Gemini analyseert de voertuiggegevens..."
         ):
 
             try:
@@ -932,9 +919,34 @@ if submit:
                     klacht=volledige_klacht
                 )
 
-                st.session_state[
-                    "laatste_diagnose"
-                ] = diagnose
+                st.session_state["laatste_diagnose"] = diagnose
+
+                # Nieuwe chatgeschiedenis opbouwen
+                st.session_state["chat_history"] = [
+                    {
+                        "role": "user",
+                        "parts": [{
+                            "text": (
+                                "Voertuig: Mercedes-Benz "
+                                + model
+                                + "\nBouwjaar: " + bouwjaar
+                                + "\nHandelsbenaming: "
+                                + handelsbenaming
+                                + "\nMotorisering: " + motorisering
+                                + "\nKilometerstand: "
+                                + kilometerstand
+                                + "\nStoringscodes: " + foutcode
+                                + "\nKlacht: " + volledige_klacht
+                            )
+                        }]
+                    },
+                    {
+                        "role": "model",
+                        "parts": [{
+                            "text": diagnose
+                        }]
+                    }
+                ]
 
             except Exception as e:
 
@@ -945,16 +957,13 @@ if submit:
 
 
 # ============================================================
-# SECTIE 5: DIAGNOSE RESULTAAT TONEN
+# SECTIE 5: DIAGNOSE RESULTAAT
 # ============================================================
 
 if st.session_state.get("laatste_diagnose"):
 
     st.divider()
-
-    st.subheader(
-        "Mercedes-Benz Diagnoseadvies"
-    )
+    st.subheader("Mercedes-Benz Diagnoseadvies")
 
     st.markdown(
         st.session_state["laatste_diagnose"]
@@ -970,22 +979,7 @@ if st.session_state.get("laatste_diagnose"):
 
 
 # ============================================================
-# FOOTER
-# ============================================================
-
-st.divider()
-
-st.caption(
-    "Wensink Mercedes-Benz Diagnose Assistent | "
-    "RDW Open Data + Google Gemini"
-)
-
-# ============================================================
-# EINDE DEEL 3
-# ============================================================
-
-# ============================================================
-# DEEL 4A: INTERACTIEVE GEMINI VERVOLGCHAT
+# DEEL 4A: GEMINI VERVOLGCHAT
 # ============================================================
 
 def genereer_vervolgantwoord(chat_history, vraag):
@@ -1006,9 +1000,9 @@ BELANGRIJK:
 1. Onthoud alle eerdere voertuiggegevens.
 2. Onthoud de oorspronkelijke klacht.
 3. Onthoud alle eerder besproken storingscodes.
-4. Gebruik de eerdere diagnose als uitgangspunt.
+4. Gebruik de oorspronkelijke diagnose als uitgangspunt.
 5. Verwerk nieuwe meetwaarden en testresultaten.
-6. Pas je eerdere conclusies aan als nieuwe informatie
+6. Pas eerdere conclusies aan als nieuwe informatie
    daar aanleiding toe geeft.
 7. Stel gerichte vervolgvragen wanneer informatie ontbreekt.
 8. Geef praktische vervolgstappen voor de monteur.
@@ -1019,7 +1013,6 @@ BELANGRIJK:
 
 Geef antwoord in professioneel Nederlands.
 
-Je hoeft de volledige eerdere diagnose niet steeds te herhalen.
 Concentreer je op de nieuwe vraag en de volgende diagnosestap.
 """
 
@@ -1033,23 +1026,17 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         "x-goog-api-key": api_key
     }
 
-    # Volledige eerdere gespreksgeschiedenis meesturen
-
     inhoud = chat_history + [
         {
             "role": "user",
-            "parts": [
-                {"text": vraag}
-            ]
+            "parts": [{"text": vraag}]
         }
     ]
 
     payload = {
         "contents": inhoud,
         "systemInstruction": {
-            "parts": [
-                {"text": systeem_prompt}
-            ]
+            "parts": [{"text": systeem_prompt}]
         },
         "generationConfig": {
             "temperature": 0.2
@@ -1078,10 +1065,7 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
             response.raise_for_status()
 
             resultaat = response.json()
-
-            kandidaten = resultaat.get(
-                "candidates", []
-            )
+            kandidaten = resultaat.get("candidates", [])
 
             if not kandidaten:
                 raise ValueError(
@@ -1099,9 +1083,7 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
             )
 
             if not antwoord:
-                raise ValueError(
-                    "Gemini heeft een leeg antwoord teruggegeven."
-                )
+                raise ValueError("Leeg antwoord van Gemini.")
 
             return antwoord
 
@@ -1125,17 +1107,12 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
 
 
 # ============================================================
-# EINDE DEEL 4A
-# ============================================================
-
-# ============================================================
-# DEEL 4B: INTERACTIEVE DIAGNOSECHAT
+# DEEL 4B: VERVOLGVRAGEN DIRECT ONDER DIAGNOSE
 # ============================================================
 
 if st.session_state.get("laatste_diagnose"):
 
     st.divider()
-
     st.subheader("Verdieping en vervolgvragen")
 
     st.write(
@@ -1144,35 +1121,24 @@ if st.session_state.get("laatste_diagnose"):
         "klacht en diagnose."
     )
 
-    # GESPREKSGESCHIEDENIS OPHALEN
-
     chat_history = st.session_state.get(
         "chat_history", []
     )
 
-    # EERDERE BERICHTEN TONEN
-    # De eerste twee berichten zijn de oorspronkelijke
-    # voertuiggegevens en diagnose.
+    # Eerdere vervolgvragen en antwoorden tonen
+    # De eerste twee berichten bevatten de basisdiagnose.
 
     for bericht in chat_history[2:]:
 
         if bericht["role"] == "user":
 
             with st.chat_message("user"):
-
-                st.markdown(
-                    bericht["parts"][0]["text"]
-                )
+                st.markdown(bericht["parts"][0]["text"])
 
         elif bericht["role"] == "model":
 
             with st.chat_message("assistant"):
-
-                st.markdown(
-                    bericht["parts"][0]["text"]
-                )
-
-    # NIEUWE VRAAG INVOEREN
+                st.markdown(bericht["parts"][0]["text"])
 
     nieuwe_vraag = st.chat_input(
         "Stel een vervolgvraag over deze Mercedes...",
@@ -1182,7 +1148,6 @@ if st.session_state.get("laatste_diagnose"):
     if nieuwe_vraag:
 
         with st.chat_message("user"):
-
             st.markdown(nieuwe_vraag)
 
         with st.chat_message("assistant"):
@@ -1198,27 +1163,16 @@ if st.session_state.get("laatste_diagnose"):
                         nieuwe_vraag
                     )
 
-                    # VRAAG OPSLAAN
-
-                    st.session_state["chat_history"].append(
+                    st.session_state["chat_history"].extend([
                         {
                             "role": "user",
-                            "parts": [
-                                {"text": nieuwe_vraag}
-                            ]
-                        }
-                    )
-
-                    # ANTWOORD OPSLAAN
-
-                    st.session_state["chat_history"].append(
+                            "parts": [{"text": nieuwe_vraag}]
+                        },
                         {
                             "role": "model",
-                            "parts": [
-                                {"text": antwoord}
-                            ]
+                            "parts": [{"text": antwoord}]
                         }
-                    )
+                    ])
 
                     st.markdown(antwoord)
 
@@ -1230,24 +1184,13 @@ if st.session_state.get("laatste_diagnose"):
 
 
 # ============================================================
-# EINDE DEEL 4B
-# ============================================================
-
-
-# ============================================================
-# DEEL 5: NIEUWE DIAGNOSE STARTEN
+# DEEL 5: NIEUWE DIAGNOSE STARTEN - HELEMAAL ONDERAAN
 # ============================================================
 
 st.divider()
-
 st.subheader("Nieuwe diagnose starten")
 
 col_nieuw, col_zelfde = st.columns(2)
-
-
-# ============================================================
-# KNOP 1: NIEUW VOERTUIG
-# ============================================================
 
 with col_nieuw:
 
@@ -1257,8 +1200,6 @@ with col_nieuw:
         type="primary"
     ):
 
-        # ALLE VOERTUIGGEGEVENS WISSEN
-
         voertuig_sleutels = [
             "rdw_model",
             "rdw_jaar",
@@ -1267,8 +1208,6 @@ with col_nieuw:
             "rdw_kenteken"
         ]
 
-        # ALLE FORMULIERVELDEN WISSEN
-
         formulier_sleutels = [
             "kilometerstand",
             "foutcode",
@@ -1276,15 +1215,11 @@ with col_nieuw:
             "extra_info"
         ]
 
-        # DIAGNOSE EN CHAT WISSEN
-
         diagnose_sleutels = [
             "laatste_diagnose",
             "chat_history",
             "diagnose_chat_input"
         ]
-
-        # ALLE GEGEVENS VERWIJDEREN
 
         for sleutel in (
             voertuig_sleutels
@@ -1292,19 +1227,10 @@ with col_nieuw:
             + diagnose_sleutels
         ):
 
-            st.session_state.pop(
-                sleutel,
-                None
-            )
-
-        # OPNIEUW LADEN
+            st.session_state.pop(sleutel, None)
 
         st.rerun()
 
-
-# ============================================================
-# KNOP 2: ZELFDE VOERTUIG
-# ============================================================
 
 with col_zelfde:
 
@@ -1312,10 +1238,6 @@ with col_zelfde:
         "ZELFDE VOERTUIG",
         use_container_width=True
     ):
-
-        # VOERTUIGGEGEVENS BEWAREN
-
-        # ALLEEN DIAGNOSEVELDEN WISSEN
 
         diagnose_sleutels = [
             "laatste_diagnose",
@@ -1328,20 +1250,18 @@ with col_zelfde:
         ]
 
         for sleutel in diagnose_sleutels:
-
-            st.session_state.pop(
-                sleutel,
-                None
-            )
+            st.session_state.pop(sleutel, None)
 
         st.rerun()
 
 
 # ============================================================
-# EINDE DEEL 5
+# FOOTER
 # ============================================================
 
+st.divider()
 
-# ============================================================
-# EINDE DEEL 5
-# ============================================================
+st.caption(
+    "Wensink Mercedes-Benz Diagnose Assistent | "
+    "RDW Open Data + Google Gemini"
+)
