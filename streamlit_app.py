@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 import time
 import re
+import base64
 
 
 # ============================================================
@@ -337,6 +338,36 @@ def haal_rdw_data(kenteken):
 # DEEL 2: GOOGLE GEMINI AI DIAGNOSE-ENGINE
 # ============================================================
 
+# ============================================================
+# FOTO'S VERWERKEN VOOR GEMINI
+# ============================================================
+
+def verwerk_fotos_voor_gemini(fotos):
+
+    foto_onderdelen = []
+
+    if not fotos:
+        return foto_onderdelen
+
+    for foto in fotos[:3]:
+
+        if foto is None:
+            continue
+
+        foto_bytes = foto["data"]
+        mime_type = foto["mime_type"]
+
+        foto_onderdelen.append({
+            "inline_data": {
+                "mime_type": mime_type,
+                "data": base64.b64encode(
+                    foto_bytes
+                ).decode("utf-8")
+            }
+        })
+
+    return foto_onderdelen
+    
 def genereer_diagnose(
     model,
     bouwjaar,
@@ -345,6 +376,7 @@ def genereer_diagnose(
     kilometerstand,
     foutcode,
     klacht
+    fotos=None
 ):
 
     # GOOGLE API-SLEUTEL OPHALEN
@@ -1033,16 +1065,42 @@ Concentreer je op de nieuwe vraag en de volgende diagnosestap.
         }
     ]
 
+        # ========================================================
+    # TEKST EN FOTO'S COMBINEREN
+    # ========================================================
+
+    inhoud_onderdelen = [
+        {
+            "text": gebruikers_prompt
+        }
+    ]
+
+    foto_onderdelen = verwerk_fotos_voor_gemini(
+        fotos or []
+    )
+
+    inhoud_onderdelen.extend(foto_onderdelen)
+
     payload = {
-        "contents": inhoud,
+
+        "contents": [
+            {
+                "parts": inhoud_onderdelen
+            }
+        ],
+
         "systemInstruction": {
-            "parts": [{"text": systeem_prompt}]
+            "parts": [
+                {
+                    "text": systeem_prompt
+                }
+            ]
         },
+
         "generationConfig": {
             "temperature": 0.2
         }
     }
-
     for poging in range(1, 4):
 
         try:
