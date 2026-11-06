@@ -5,6 +5,11 @@ import time
 import re
 import base64
 
+st.set_page_config(
+    page_title="Wensink Mercedes Diagnose",
+    page_icon="🚘",
+    layout="wide"
+)
 
 # ============================================================
 # BEVEILIGING WENSINK DIAGNOSE ASSISTENT
