@@ -1546,12 +1546,42 @@ if st.session_state.get("laatste_diagnose"):
             ):
 
                 try:
+                    # 1. Bouw de volledige geschiedenis op voor de API (inclusief de eerste diagnose)
+                    api_contents = []
+                    for bericht in chat_history:
+                        api_contents.append({
+                            "role": bericht["role"],
+                            "parts": [{"text": bericht["parts"][0]["text"]}]
+                        })
+                    
+                    # Voeg de allernieuwste vraag van de monteur toe aan het einde van de lijst
+                    api_contents.append({
+                        "role": "user",
+                        "parts": [{"text": nieuwe_vraag}]
+                    })
 
-                    antwoord = genereer_vervolgantwoord(
-                        chat_history,
-                        nieuwe_vraag
-                    )
+                    # 2. Stuur het verzoek rechtstreeks naar de Gemini 3.8 Flash API
+                    # (Zorg dat 'api_key' en 'systeem_prompt' bovenin je script bekend zijn)
+                    url = "https://googleapis.com"
+                    headers = {
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": api_key
+                    }
+                    payload = {
+                        "contents": api_contents,
+                        "systemInstruction": {
+                            "parts": [{"text": systeem_prompt}]
+                        }
+                    }
 
+                    response = requests.post(url, json=payload, headers=headers, timeout=30)
+                    response.raise_for_status()
+                    
+                    # 3. Pak het antwoord uit de JSON response
+                    resultaat = response.json()
+                    antwoord = resultaat["candidates"][0]["content"]["parts"][0]["text"]
+
+                    # 4. Sla BEIDE nieuwe berichten op in de session_state geschiedenis
                     st.session_state["chat_history"].extend([
                         {
                             "role": "user",
@@ -1563,7 +1593,10 @@ if st.session_state.get("laatste_diagnose"):
                         }
                     ])
 
+                    # 5. Toon het antwoord op het scherm en ververs
                     st.markdown(antwoord)
+                    st.rerun()
+
 
                 except Exception as e:
 
