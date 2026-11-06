@@ -904,56 +904,44 @@ with st.form("diagnose_form"):
         height=150
     )
 
-    # ============================================================
-# FOTO'S TOEVOEGEN AAN DE DIAGNOSE
-# ============================================================
+    # FOTO'S TOEVOEGEN
 
-st.markdown("### 📷 Foto's toevoegen aan de klacht")
+    st.markdown("### 📷 Foto's toevoegen aan de klacht")
 
-fotos_upload = st.file_uploader(
-    "Maak een foto of selecteer foto's uit de galerij",
-    type=["jpg", "jpeg", "png", "webp"],
-    accept_multiple_files=True,
-    max_upload_size=10,
-    key="diagnose_fotos"
-)
-
-# MAXIMAAL 3 FOTO'S
-
-if len(fotos_upload) > 3:
-
-    st.error(
-        "Je kunt maximaal 3 foto's toevoegen."
+    fotos_upload = st.file_uploader(
+        "Maak een foto of selecteer foto's",
+        type=["jpg", "jpeg", "png", "webp"],
+        accept_multiple_files=True,
+        key="diagnose_fotos"
     )
+
+    # MAXIMAAL 3 FOTO'S
+
+    if len(fotos_upload) > 3:
+        st.warning("Maximaal 3 foto's toegestaan.")
 
     fotos_upload = fotos_upload[:3]
 
-# FOTO'S TONEN
+    fotos_voor_gemini = []
 
-fotos_voor_gemini = []
+    if fotos_upload:
 
-if fotos_upload:
+        foto_kolommen = st.columns(3)
 
-    foto_kolommen = st.columns(3)
+        for index, foto in enumerate(fotos_upload):
 
-    for index, foto in enumerate(fotos_upload):
+            with foto_kolommen[index]:
 
-        with foto_kolommen[index]:
+                st.image(
+                    foto,
+                    caption=f"Foto {index + 1}",
+                    use_container_width=True
+                )
 
-            st.image(
-                foto,
-                caption=f"Foto {index + 1}",
-                use_container_width=True
-            )
-
-            fotos_voor_gemini.append({
-                "data": foto.getvalue(),
-                "mime_type": foto.type
-            })
-
-    st.success(
-        f"{len(fotos_upload)} foto('s) toegevoegd."
-    )
+                fotos_voor_gemini.append({
+                    "data": foto.getvalue(),
+                    "mime_type": foto.type
+                })
 
     extra_info = st.text_area(
         "Extra informatie (optioneel)",
@@ -962,6 +950,9 @@ if fotos_upload:
     )
 
     submit = st.form_submit_button(
+        "GENEREER MERCEDES DIAGNOSE",
+        use_container_width=True
+    )
         "GENEREER MERCEDES DIAGNOSE",
         use_container_width=True
     )
