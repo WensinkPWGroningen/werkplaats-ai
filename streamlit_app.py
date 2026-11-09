@@ -358,16 +358,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-reset_col1, reset_col2 = st.columns(2)
-with reset_col1:
-    if st.button("â†» NIEUW VOERTUIG STARTEN", use_container_width=True):
-        reset_nieuw_voertuig()
-        st.rerun()
-with reset_col2:
-    if st.button("â†» NIEUWE DIAGNOSE (ZELFDE AUTO)", use_container_width=True):
-        reset_zelfde_voertuig()
-        st.rerun()
-
 if st.session_state.reset_melding:
     st.success(st.session_state.reset_melding)
     st.session_state.reset_melding = ""
@@ -477,7 +467,7 @@ if fotos:
 # -------------------- EERSTE DIAGNOSE --------------------
 
 st.divider()
-if st.button("START START MASTER TECHNICIAN ANALYSE", use_container_width=True):
+if st.button("START DIAGNOSE", use_container_width=True):
     if not st.session_state.rdw_kenteken:
         st.warning("Haal eerst een geldig Mercedes-Benz voertuig op via het kenteken.")
     elif not st.session_state.klacht.strip() and not st.session_state.foutcode.strip():
@@ -528,14 +518,14 @@ Analyseer de klacht volgens de afgesproken rapportopbouw. Benoem expliciet welke
 
 if st.session_state.laatste_diagnose:
     st.divider()
-    st.subheader("ðŸ“‹ Wensink Master Technician â€“ Diagnose")
+    st.subheader("Wensink Master Technician - Diagnose")
     st.markdown(st.session_state.laatste_diagnose)
 
 # -------------------- VERVOLGDIAGNOSE --------------------
 
 if st.session_state.laatste_diagnose:
     st.divider()
-    st.subheader("ðŸ’¬ Stap voor stap verder diagnosticeren")
+    st.subheader("Stap voor stap verder diagnosticeren")
     st.write(
         "Geef de meetwaarden, testuitslagen of aanvullende informatie door. "
         "De Master Technician bouwt voort op de volledige eerdere diagnose."
@@ -575,3 +565,18 @@ st.caption(
     "Wensink Mercedes-Benz Werkplaats Assistent. AI-advies is ondersteunend: "
     "controleer veiligheidskritische werkzaamheden en fabriekswaarden altijd in actuele Mercedes-documentatie."
 )
+
+st.divider()
+st.subheader("Nieuwe diagnose of nieuw voertuig")
+st.caption("Kies hieronder of je met hetzelfde voertuig verder wilt met een nieuwe diagnose, of een ander voertuig wilt invoeren.")
+reset_col1, reset_col2 = st.columns(2)
+with reset_col1:
+    if st.button("NIEUW VOERTUIG STARTEN", use_container_width=True):
+        reset_nieuw_voertuig()
+        st.rerun()
+with reset_col2:
+    if st.button("NIEUWE DIAGNOSE (ZELFDE AUTO)", use_container_width=True):
+        reset_zelfde_voertuig()
+        st.rerun()
+
+
