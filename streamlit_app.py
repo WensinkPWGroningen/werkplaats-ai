@@ -350,10 +350,13 @@ def genereer_vervolgantwoord(chat_history, vraag):
 # -------------------- PAGINA --------------------
 
 st.markdown(
-    "<h1 class='main-title'>Wensink Mercedes-Benz Diagnose Assistent</h1>",
+    "<h1 class='main-title'>Wensink Mercedes-Benz Werkplaats Assistent</h1>",
     unsafe_allow_html=True,
 )
-
+st.markdown(
+    "<p class='subtitle'>Een stapsgewijze digitale Master Technician voor diagnose en technische ondersteuning.</p>",
+    unsafe_allow_html=True,
+)
 
 if st.session_state.reset_melding:
     st.success(st.session_state.reset_melding)
@@ -364,26 +367,54 @@ st.divider()
 # -------------------- VOERTUIG OPHALEN --------------------
 
 st.subheader("Voertuiggegevens")
-kenteken_invoer = st.text_input(
-    "Kenteken invoeren",
-    key="kenteken_invoer",
-    placeholder="Bijvoorbeeld: XX-123-X",
-)
+kenteken_col, ophalen_col = st.columns([3, 1])
 
-if kenteken_invoer:
-    schoon_kenteken = normaliseer_kenteken(kenteken_invoer)
-    if schoon_kenteken and schoon_kenteken != st.session_state.laatste_kenteken_opgehaald:
+with kenteken_col:
+    kenteken_invoer = st.text_input(
+        "Kenteken invoeren",
+        key="kenteken_invoer",
+        placeholder="Bijvoorbeeld: XX-123-X",
+    )
+
+with ophalen_col:
+    st.write("")
+    ophalen_kenteken = st.button(
+        "KENTEKENGEGEVENS OPHALEN",
+        use_container_width=True,
+    )
+
+# Wis eerder opgehaalde gegevens zodra een ander kenteken wordt ingevoerd.
+schoon_kenteken = normaliseer_kenteken(kenteken_invoer)
+if st.session_state.rdw_kenteken and schoon_kenteken != normaliseer_kenteken(st.session_state.rdw_kenteken):
+    for veld in (
+        "rdw_kenteken", "rdw_model", "rdw_jaar", "rdw_motor",
+        "rdw_handelsbenaming", "rdw_voertuigsoort", "rdw_cilinderinhoud",
+        "rdw_vermogen", "rdw_transmissie",
+    ):
+        st.session_state[veld] = ""
+    st.session_state.laatste_kenteken_opgehaald = ""
+
+if ophalen_kenteken:
+    if not schoon_kenteken:
+        st.warning("Vul eerst een kenteken in.")
+    else:
+        for veld in (
+            "rdw_kenteken", "rdw_model", "rdw_jaar", "rdw_motor",
+            "rdw_handelsbenaming", "rdw_voertuigsoort", "rdw_cilinderinhoud",
+            "rdw_vermogen", "rdw_transmissie",
+        ):
+            st.session_state[veld] = ""
+
         with st.spinner("Voertuiggegevens ophalen bij de RDW..."):
             try:
                 voertuig_data = haal_rdw_data(schoon_kenteken)
                 if voertuig_data == "GEEN_MERCEDES":
-                    st.error("Dit voertuig is geen Mercedes-Benz. Deze assistent ondersteunt alleen Mercedes-Benz.")
-                    st.session_state.rdw_kenteken = ""
-                    st.session_state.laatste_kenteken_opgehaald = schoon_kenteken
+                    st.error(
+                        "Dit voertuig is geen Mercedes-Benz. "
+                        "Deze assistent ondersteunt alleen Mercedes-Benz."
+                    )
                 elif voertuig_data is None:
                     st.warning("Geen voertuig gevonden bij de RDW. Controleer het kenteken.")
-                    st.session_state.rdw_kenteken = ""
-                    st.session_state.laatste_kenteken_opgehaald = schoon_kenteken
                 else:
                     st.session_state.rdw_kenteken = voertuig_data["kenteken"]
                     st.session_state.rdw_model = voertuig_data["model"]
@@ -412,7 +443,7 @@ if st.session_state.rdw_kenteken:
     st.markdown(
         f"""
         <div class="vehicle-card">
-          <strong>âœ“ Geregistreerd voertuig: Mercedes-Benz {st.session_state.rdw_model}</strong><br>
+          <strong>Geregistreerd voertuig: Mercedes-Benz {st.session_state.rdw_model}</strong><br>
           Kenteken: {st.session_state.rdw_kenteken}<br>
           <small>Handelsbenaming: {st.session_state.rdw_handelsbenaming}
           &nbsp;|&nbsp; Eerste toelating: {st.session_state.rdw_jaar}
@@ -423,7 +454,10 @@ if st.session_state.rdw_kenteken:
         """,
         unsafe_allow_html=True,
     )
-    st.caption("Let op: RDW-gegevens identificeren niet altijd de exacte motorcode, uitvoering of ECU-variant. Controleer die zo nodig via VIN/XENTRY.")
+    st.caption(
+        "Let op: RDW-gegevens identificeren niet altijd de exacte motorcode, "
+        "uitvoering of ECU-variant. Controleer die zo nodig via VIN/XENTRY."
+    )
 
 # -------------------- WERKPLAATSINVOER --------------------
 
@@ -515,7 +549,7 @@ Analyseer de klacht volgens de afgesproken rapportopbouw. Benoem expliciet welke
 
 if st.session_state.laatste_diagnose:
     st.divider()
-    st.subheader("Wensink Master Technician - Diagnose")
+    st.subheader("Wensink - Diagnose")
     st.markdown(st.session_state.laatste_diagnose)
 
 # -------------------- VERVOLGDIAGNOSE --------------------
@@ -559,7 +593,7 @@ if st.session_state.laatste_diagnose:
 
 st.divider()
 st.caption(
-    "Wensink Mercedes-Benz Werkplaats Assistent. AI-advies is ondersteunend: "
+    "Wensink Mercedes-Benz Diagnose Assistent. AI-advies is ondersteunend: "
     "controleer veiligheidskritische werkzaamheden en fabriekswaarden altijd in actuele Mercedes-documentatie."
 )
 
@@ -568,7 +602,7 @@ st.subheader("Nieuwe diagnose of nieuw voertuig")
 st.caption("Kies hieronder of je met hetzelfde voertuig verder wilt met een nieuwe diagnose, of een ander voertuig wilt invoeren.")
 reset_col1, reset_col2 = st.columns(2)
 with reset_col1:
-    if st.button("NIEUWE DIAGNOSE STARTEN", use_container_width=True):
+    if st.button("NIEUW VOERTUIG STARTEN", use_container_width=True):
         reset_nieuw_voertuig()
         st.rerun()
 with reset_col2:
