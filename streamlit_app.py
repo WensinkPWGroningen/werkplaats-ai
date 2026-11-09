@@ -471,7 +471,7 @@ if st.button("START DIAGNOSE", use_container_width=True):
         st.warning("Voer minimaal een klachtomschrijving of een storingscode in.")
     else:
         try:
-            with st.spinner("De Master Technician analyseert voertuig, klacht, DTC's en beschikbare foto's..."):
+            with st.spinner("Analyse wordt uitgevoerd..."):
                 foto_parts = []
                 if fotos:
                     geldige_fotos = [
@@ -525,7 +525,7 @@ if st.session_state.laatste_diagnose:
     st.subheader("Stap voor stap verder diagnosticeren")
     st.write(
         "Geef de meetwaarden, testuitslagen of aanvullende informatie door. "
-        "De Master Technician bouwt voort op de volledige eerdere diagnose."
+        
     )
 
     for bericht in st.session_state.chat_history[2:]:
@@ -546,7 +546,7 @@ if st.session_state.laatste_diagnose:
     nieuwe_vraag = st.chat_input("Geef een meetwaarde, testuitslag of vervolgvraag...")
     if nieuwe_vraag:
         try:
-            with st.spinner("De Master Technician verwerkt de nieuwe bevindingen..."):
+            with st.spinner("Analyse wordt uitgevoerd..."):
                 antwoord, user_turn, model_turn = genereer_vervolgantwoord(
                     st.session_state.chat_history,
                     nieuwe_vraag,
@@ -568,7 +568,7 @@ st.subheader("Nieuwe diagnose of nieuw voertuig")
 st.caption("Kies hieronder of je met hetzelfde voertuig verder wilt met een nieuwe diagnose, of een ander voertuig wilt invoeren.")
 reset_col1, reset_col2 = st.columns(2)
 with reset_col1:
-    if st.button("NIEUW VOERTUIG STARTEN", use_container_width=True):
+    if st.button("NIEUWE DIAGNOSE STARTEN", use_container_width=True):
         reset_nieuw_voertuig()
         st.rerun()
 with reset_col2:
