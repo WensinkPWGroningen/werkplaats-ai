@@ -51,7 +51,7 @@ def controleer_toegang():
     if st.session_state.ingelogd:
         return
 
-    st.title("ðŸ”’ Wensink Diagnose Assistent")
+    st.title("Wensink Diagnose Assistent")
     st.write("Voer de gezamenlijke toegangscode in.")
 
     ingevoerde_code = st.text_input("Toegangscode", type="password")
@@ -220,7 +220,7 @@ WERKWIJZE
   actuatortest of begeleide test de monteur kan raadplegen.
 - Benoem welke aanvullende gegevens nodig zijn als motorcode, VIN, bouwjaar,
   transmissievariant of exacte ECU-versie bepalend zijn.
-- Leg uit wat een afwijkende Ã©n een normale meetuitkomst betekent.
+- Leg uit wat een afwijkende en een normale meetuitkomst betekent.
 - Pas de waarschijnlijkheid van oorzaken aan zodra nieuwe resultaten binnenkomen.
 - Sluit een diagnose niet als bewezen af zonder voldoende meet- of testbewijs.
 
@@ -350,7 +350,7 @@ def genereer_vervolgantwoord(chat_history, vraag):
 # -------------------- PAGINA --------------------
 
 st.markdown(
-    "<h1 class='main-title'>ðŸš˜ Wensink Mercedes-Benz Werkplaats Assistent</h1>",
+    "<h1 class='main-title'>Wensink Mercedes-Benz Werkplaats Assistent</h1>",
     unsafe_allow_html=True,
 )
 st.markdown(
@@ -360,11 +360,11 @@ st.markdown(
 
 reset_col1, reset_col2 = st.columns(2)
 with reset_col1:
-    if st.button("â™»ï¸ NIEUW VOERTUIG STARTEN", use_container_width=True):
+    if st.button("â†» NIEUW VOERTUIG STARTEN", use_container_width=True):
         reset_nieuw_voertuig()
         st.rerun()
 with reset_col2:
-    if st.button("ðŸ”„ NIEUWE DIAGNOSE (ZELFDE AUTO)", use_container_width=True):
+    if st.button("â†» NIEUWE DIAGNOSE (ZELFDE AUTO)", use_container_width=True):
         reset_zelfde_voertuig()
         st.rerun()
 
@@ -376,7 +376,7 @@ st.divider()
 
 # -------------------- VOERTUIG OPHALEN --------------------
 
-st.subheader("ðŸš— Voertuiggegevens")
+st.subheader("Voertuiggegevens")
 kenteken_invoer = st.text_input(
     "Kenteken invoeren",
     key="kenteken_invoer",
@@ -425,7 +425,7 @@ if st.session_state.rdw_kenteken:
     st.markdown(
         f"""
         <div class="vehicle-card">
-          <strong>âœ… Geregistreerd voertuig: Mercedes-Benz {st.session_state.rdw_model}</strong><br>
+          <strong>âœ“ Geregistreerd voertuig: Mercedes-Benz {st.session_state.rdw_model}</strong><br>
           Kenteken: {st.session_state.rdw_kenteken}<br>
           <small>Handelsbenaming: {st.session_state.rdw_handelsbenaming}
           &nbsp;|&nbsp; Eerste toelating: {st.session_state.rdw_jaar}
@@ -440,7 +440,7 @@ if st.session_state.rdw_kenteken:
 
 # -------------------- WERKPLAATSINVOER --------------------
 
-st.subheader("ðŸ› ï¸ Werkplaatsgegevens")
+st.subheader("Werkplaatsgegevens")
 col1, col2 = st.columns(2)
 with col1:
     st.text_input("Kilometerstand (km)", key="kilometerstand")
@@ -477,7 +477,7 @@ if fotos:
 # -------------------- EERSTE DIAGNOSE --------------------
 
 st.divider()
-if st.button("ðŸ”¥ START MASTER TECHNICIAN ANALYSE", use_container_width=True):
+if st.button("START START MASTER TECHNICIAN ANALYSE", use_container_width=True):
     if not st.session_state.rdw_kenteken:
         st.warning("Haal eerst een geldig Mercedes-Benz voertuig op via het kenteken.")
     elif not st.session_state.klacht.strip() and not st.session_state.foutcode.strip():
@@ -575,4 +575,3 @@ st.caption(
     "Wensink Mercedes-Benz Werkplaats Assistent. AI-advies is ondersteunend: "
     "controleer veiligheidskritische werkzaamheden en fabriekswaarden altijd in actuele Mercedes-documentatie."
 )
-
