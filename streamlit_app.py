@@ -599,7 +599,7 @@ st.subheader("Nieuwe diagnose of nieuw voertuig")
 st.caption("Kies hieronder of je met hetzelfde voertuig verder wilt met een nieuwe diagnose, of een ander voertuig wilt invoeren.")
 reset_col1, reset_col2 = st.columns(2)
 with reset_col1:
-    if st.button("NIEUW VOERTUIG STARTEN", use_container_width=True):
+    if st.button("NIEUWE DIAGNOSE STARTEN", use_container_width=True):
         reset_nieuw_voertuig()
         st.rerun()
 with reset_col2:
