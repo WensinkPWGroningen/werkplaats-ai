@@ -260,7 +260,7 @@ def get_api_key():
 
 
 def get_model():
-    return str(st.secrets.get("GEMINI_MODEL", "gemini-2.5-flash")).strip()
+    return str(st.secrets.get("GEMINI_MODEL", "gemini-3.8-flash")).strip()
 
 
 def extract_gemini_text(data):
