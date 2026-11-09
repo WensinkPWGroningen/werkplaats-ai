@@ -352,10 +352,7 @@ def genereer_vervolgantwoord(chat_history, vraag):
 st.markdown(
     "<h1 class='main-title'>Wensink Mercedes-Benz Werkplaats Assistent</h1>",
     unsafe_allow_html=True,
-)
-st.markdown(
-    "<p class='subtitle'>Een stapsgewijze digitale Master Technician voor diagnose en technische ondersteuning.</p>",
-    unsafe_allow_html=True,
+
 )
 
 if st.session_state.reset_melding:
