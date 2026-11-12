@@ -44,13 +44,31 @@ st.markdown(
 
 # -------------------- TOEGANGSCONTROLE --------------------
 
+import datetime
+import time
+import streamlit as st
+from streamlit_cookies_controller import CookieController
+
+# -------------------- TOEGANGSCONTROLE --------------------
+
 def controleer_toegang():
+    # Initialiseer de cookie controller (key is verplicht)
+    controller = CookieController(key="wensink_cookies")
+
     if "ingelogd" not in st.session_state:
         st.session_state.ingelogd = False
 
+    # 1. Al ingelogd in deze actieve sessie? Direct doorgaan.
     if st.session_state.ingelogd:
         return
 
+    # 2. Controleer of er al een geldige 30-dagen cookie op de tablet staat
+    opgeslagen_token = controller.get("wensink_auth_token")
+    if opgeslagen_token == "geautoriseerd_30d":
+        st.session_state.ingelogd = True
+        st.rerun()
+
+    # 3. Niet ingelogd: toon het inlogscherm
     st.title("Wensink Diagnose Assistent")
     st.write("Voer de gezamenlijke toegangscode in.")
 
@@ -66,7 +84,16 @@ def controleer_toegang():
             st.stop()
 
         if ingevoerde_code == juiste_code:
+            # Sla de cookie op voor precies 30 dagen (30 * 24 * 60 * 60 seconden)
+            verloopdatum = datetime.datetime.now() + datetime.timedelta(days=30)
+            controller.set(
+                "wensink_auth_token",
+                "geautoriseerd_30d",
+                expires=verloopdatum,
+            )
             st.session_state.ingelogd = True
+            # Korte pauze zodat de browser de cookie kan wegschrijven vóór de rerun
+            time.sleep(0.5)
             st.rerun()
         else:
             st.error("Onjuiste toegangscode.")
