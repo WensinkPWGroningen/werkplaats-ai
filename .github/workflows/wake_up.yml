@@ -1,0 +1,39 @@
+name: Keep https://werkplaats-ai-bb6qjhmdoucueduatgjqgr.streamlit.app/ Awake
+
+on:
+  schedule:
+    # Draait elke 8 uur (ruim binnen de 12-uurs limiet van Streamlit)
+    - cron: '0 */8 * * *'
+  workflow_dispatch: # Hiermee kun je hem ook handmatig testen
+
+jobs:
+  wake-up:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright and Chromium
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Open app and click wake button if sleeping
+        run: |
+          python -c "
+          from playwright.sync_api import sync_playwright
+          import time
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+              page.goto('https://streamlit.app', timeout=60000)
+              time.sleep(5)
+              
+              # Zoek naar de 'Yes, get this app back up!' knop als de app slaapt
+              button = page.locator('button', has_text='Yes, get this app back up!')
+              if button.count() > 0:
+                  print('App slaapt, knop indrukken...')
+                  button.click()
+                  time.sleep(15)
+              else:
+                  print('App is al wakker!')
+              browser.close()
+          "
