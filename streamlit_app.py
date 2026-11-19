@@ -19,7 +19,7 @@ st.set_page_config(
 RDW_VOERTUIG_URL = "https://opendata.rdw.nl/resource/m9d7-ebf2.json"
 RDW_BRANDSTOF_URL = "https://opendata.rdw.nl/resource/8ys7-d773.json"
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
-MAX_FOTOS = 3
+MAX_FOTOS = 20
 MAX_FOTO_GROOTTE_MB = 8
 
 # -------------------- HUISSTIJL --------------------
