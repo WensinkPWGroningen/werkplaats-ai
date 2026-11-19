@@ -494,7 +494,7 @@ with col2:
     st.text_area("Klachtomschrijving van de klant", key="klacht", height=110)
     st.text_area("Extra parameters, meetwaarden en reeds uitgevoerde tests", key="extra_info", height=110)
 
-st.write("**Foto's toevoegen (optioneel, maximaal 3)**")
+st.write("**Foto's toevoegen (optioneel)**")
 fotos = st.file_uploader(
     "Voeg foto's toe van bijvoorbeeld componenten, lekkages, schade of meetresultaten.",
     type=["jpg", "jpeg", "png", "webp"],
